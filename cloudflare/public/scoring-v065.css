@@ -1,0 +1,50 @@
+.duel-bye-week .duel-daily-low {
+  color: #f5b942 !important;
+  background: color-mix(in srgb, #f5b942 14%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #f5b942 35%, transparent);
+}
+
+.duel-bye-badge {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.state-ruler-panel {
+  padding: 22px;
+}
+
+.state-ruler-metrics {
+  margin: 18px 0;
+}
+
+.state-ruler-empty {
+  padding: 42px 24px;
+  text-align: center;
+}
+
+.score-check {
+  display: flex !important;
+  gap: 9px;
+  align-items: center;
+  margin-top: 14px;
+  font-weight: 700;
+}
+
+.score-check input {
+  width: 18px;
+  height: 18px;
+}
+
+#scoring-admin-v130 .duel-admin-card small {
+  display: block;
+  margin: -4px 0 10px;
+}
+
+@media (max-width: 760px) {
+  .state-ruler-panel {
+    padding: 14px;
+  }
+  .state-ruler-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

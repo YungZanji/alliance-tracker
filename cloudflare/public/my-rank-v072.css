@@ -1,0 +1,61 @@
+.my-rank-button {
+  margin-left: auto;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.my-rank-head {
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+tr.is-current-player > td {
+  background-image: linear-gradient(rgba(57, 181, 255, 0.11), rgba(57, 181, 255, 0.11));
+  box-shadow: inset 0 1px 0 rgba(83, 196, 255, 0.55), inset 0 -1px 0 rgba(83, 196, 255, 0.55);
+}
+
+tr.is-current-player > td:first-child {
+  box-shadow: inset 4px 0 0 var(--blue), inset 0 1px 0 rgba(83, 196, 255, 0.55), inset 0 -1px 0 rgba(83, 196, 255, 0.55);
+}
+
+tr.is-current-player .player-cell strong {
+  color: #7fd5ff;
+}
+
+.you-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(83, 196, 255, 0.4);
+  background: rgba(57, 181, 255, 0.14);
+  color: #7fd5ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  vertical-align: 2px;
+}
+
+@keyframes my-rank-pulse {
+  0%, 100% { filter: brightness(1); }
+  35% { filter: brightness(1.32); }
+  65% { filter: brightness(1.12); }
+}
+
+tr.my-rank-pulse {
+  animation: my-rank-pulse 0.9s ease-in-out 2;
+}
+
+@media (max-width: 760px) {
+  .my-rank-button {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .panel-head:has(.my-rank-button) {
+    align-items: stretch;
+  }
+}

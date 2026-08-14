@@ -1,0 +1,97 @@
+name: Cloudflare deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ALLIANCE_UPLOAD_TOKEN: ${{ secrets.ALLIANCE_UPLOAD_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo "Missing CLOUDFLARE_ACCOUNT_ID" && exit 1)
+          test -n "$ALLIANCE_UPLOAD_TOKEN" || (echo "Missing ALLIANCE_UPLOAD_TOKEN" && exit 1)
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate Worker source
+        run: npm run check
+
+      - name: Verify Cloudflare login
+        run: npx wrangler whoami
+
+      - name: Resolve D1 database
+        id: d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIST=$(npx wrangler d1 list --json)
+          DB_ID=$(printf '%s' "$LIST" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s);const d=a.find(x=>x.name==='alliance-tracker-db');if(d)process.stdout.write(String(d.uuid||d.id||''));})")
+          if [ -z "$DB_ID" ]; then
+            echo "Creating alliance-tracker-db..."
+            npx wrangler d1 create alliance-tracker-db --location wnam
+            LIST=$(npx wrangler d1 list --json)
+            DB_ID=$(printf '%s' "$LIST" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s);const d=a.find(x=>x.name==='alliance-tracker-db');if(d)process.stdout.write(String(d.uuid||d.id||''));})")
+          fi
+          test -n "$DB_ID" || (echo "Could not resolve alliance-tracker-db" && exit 1)
+          node scripts/render-wrangler.mjs "$DB_ID"
+
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply alliance-tracker-db --remote --config wrangler.generated.jsonc
+
+      - name: Set desktop upload token
+        shell: bash
+        run: printf '%s' "$ALLIANCE_UPLOAD_TOKEN" | npx wrangler secret put UPLOAD_TOKEN --config wrangler.generated.jsonc
+
+      - name: Deploy Worker
+        run: npx wrangler deploy --config wrangler.generated.jsonc
+
+      - name: Attach production domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains" \
+            -X PUT \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"hostname":"wdz.state305.cc","service":"alliance-tracker","zone_name":"state305.cc"}')
+          printf '%s' "$RESPONSE" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);if(!r.success){console.error(JSON.stringify(r.errors||r));process.exit(1)}})"
+
+      - name: Check production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9; do
+            if curl --fail --silent --show-error --max-time 15 https://wdz.state305.cc/api/health; then
+              echo
+              echo "Alliance Tracker is live."
+              exit 0
+            fi
+            echo "Health check $attempt/9 not ready yet."
+            sleep 10
+          done
+          exit 1

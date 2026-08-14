@@ -1,0 +1,55 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/windows-release.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          architecture: 'x64'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r desktop/requirements.txt pyinstaller pillow
+
+      - name: Prepare desktop assets
+        run: |
+          python desktop/fetch_brand_font.py
+          python desktop/make_icon.py
+
+      - name: Run build checks
+        working-directory: desktop
+        run: python verify_build.py
+
+      - name: Build executable
+        run: pyinstaller --noconfirm --clean desktop/AllianceTracker.spec
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'dist/AllianceTracker.exe')) { throw 'AllianceTracker.exe was not created' }
+          Get-Item 'dist/AllianceTracker.exe' | Format-List Name,Length,LastWriteTime
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AllianceTracker-Windows
+          path: dist/AllianceTracker.exe
+          if-no-files-found: error

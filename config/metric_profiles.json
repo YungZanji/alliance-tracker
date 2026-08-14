@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "alliance_duel_rankings",
+      "label": "Alliance Duel Rankings",
+      "commands": ["al.battle.rank.info"],
+      "enabled": true,
+      "notes": "Types: 0 current day combined, 1 weekly combined, 2 weekly own alliance, 3 completed days nested lists."
+    },
+    {
+      "id": "alliance_duel_week_results",
+      "label": "Alliance Duel Day Results",
+      "commands": ["al.battle.week.result.info"],
+      "enabled": true
+    },
+    {
+      "id": "alliance_duel_season",
+      "label": "Alliance Duel Season",
+      "commands": ["get.alliance.duel.season.info"],
+      "enabled": true
+    }
+  ]
+}

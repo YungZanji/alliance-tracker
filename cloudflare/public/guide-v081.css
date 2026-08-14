@@ -1,0 +1,17 @@
+/* Portal 0.8.1: Guide loading/admin layout hotfix. */
+.benchmark-grid-single{grid-template-columns:1fr!important;gap:0!important}
+.benchmark-row{grid-template-columns:minmax(220px,1fr) minmax(180px,260px)!important;gap:20px!important;align-items:center!important;min-width:0}
+.benchmark-copy{min-width:0}
+.benchmark-copy strong{font-size:16px}
+.benchmark-copy .muted{max-width:560px;line-height:1.45}
+.benchmark-row>.number-stepper{width:100%!important;max-width:260px;justify-self:end;min-width:0}
+.benchmark-row>.benchmark-input{width:100%;max-width:260px;justify-self:end}
+.benchmark-actions{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+.benchmark-admin .panel-head{margin-bottom:4px}
+.benchmark-admin .panel-head .muted{max-width:760px;line-height:1.5}
+.guide-page{min-width:0}
+.guide-page section{min-width:0}
+@media(max-width:760px){
+  .benchmark-row{grid-template-columns:1fr!important;gap:8px!important;padding:14px 0!important}
+  .benchmark-row>.number-stepper,.benchmark-row>.benchmark-input{justify-self:stretch;width:100%!important;max-width:none}
+}

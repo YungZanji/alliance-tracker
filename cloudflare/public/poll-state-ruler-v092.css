@@ -1,0 +1,78 @@
+.poll-state-ruler-panel {
+  margin: 18px 0 4px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-2) 88%, transparent), var(--card));
+  display: grid;
+  gap: 14px;
+}
+
+.poll-backfill-copy h3 {
+  margin: 4px 0 6px;
+  font-size: 1.08rem;
+}
+
+.poll-backfill-copy p,
+.poll-backfill-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.poll-backfill-controls {
+  display: grid;
+  grid-template-columns: minmax(150px, .9fr) minmax(120px, .65fr) minmax(220px, 1.35fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.poll-backfill-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.poll-backfill-controls label > span {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.poll-backfill-controls .btn {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.poll-backfill-status {
+  min-height: 20px;
+  color: var(--muted);
+  display: grid;
+  gap: 2px;
+}
+
+.poll-backfill-status.success { color: var(--green); }
+.poll-backfill-status.error { color: var(--red); }
+.poll-backfill-status span { color: var(--muted); }
+
+.poll-backfill-history {
+  display: grid;
+  gap: 5px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .84rem;
+}
+.poll-backfill-history strong { color: var(--ink); }
+
+@media (max-width: 1050px) {
+  .poll-backfill-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .poll-backfill-controls .btn { width: 100%; }
+}
+
+@media (max-width: 680px) {
+  .poll-state-ruler-panel { padding: 14px; }
+  .poll-backfill-controls { grid-template-columns: 1fr; }
+}

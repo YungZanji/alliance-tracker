@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Alliance Duel - Weekday Production",
+  "description": "Built-in Monday-Saturday production route validated by successful visible and 1.6.1 unattended Duel syncs. Uses the proven typed Unity resolver and recorded control timing.",
+  "timingMode": "Recorded JSON timing",
+  "steps": [
+    {"controlType":"Button","name":"UIMain_icon_AlCompete","replayKey":"UIMain_icon_AlCompete","delayMs":2500},
+    {"controlType":"Button","name":"rankBtn","replayKey":"rankBtn","delayMs":3508},
+    {"controlType":"Toggle","name":"Toggle2","replayKey":"Toggle2","delayMs":1890},
+    {"controlType":"Toggle","name":"Toggle3","replayKey":"Toggle3","delayMs":1073},
+    {"controlType":"Toggle","name":"Toggle1","replayKey":"Toggle1","delayMs":1849},
+    {"controlType":"Button","name":"CloseBtn","replayKey":"CloseBtn","delayMs":0},
+    {"controlType":"Button","name":"PCMask","replayKey":"PCMask","delayMs":2225,"optional":true}
+  ]
+}

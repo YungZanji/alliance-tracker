@@ -1,0 +1,105 @@
+.player-leave-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--amber, #d99b2b);
+  background: color-mix(in srgb, var(--amber, #d99b2b) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber, #d99b2b) 34%, transparent);
+  vertical-align: middle;
+}
+
+.player-on-leave {
+  background: color-mix(in srgb, var(--amber, #d99b2b) 4%, transparent);
+}
+
+.duel-admin-panel {
+  margin-top: 22px;
+}
+
+.duel-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.duel-admin-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--panel-2, var(--panel));
+}
+
+.duel-admin-card h3 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+.duel-admin-card > label {
+  display: block;
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.duel-admin-card .input,
+.duel-admin-card .select {
+  width: 100%;
+}
+
+.duel-week-checks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.duel-week-checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--panel);
+  font-size: 12px;
+}
+
+.duel-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.duel-admin-status {
+  min-height: 18px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.duel-admin-status.error {
+  color: var(--red, #ff6577);
+}
+
+.duel-admin-status.success {
+  color: var(--green, #35d29a);
+}
+
+@media (max-width: 820px) {
+  .duel-admin-grid {
+    grid-template-columns: 1fr;
+  }
+  .duel-week-checks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
