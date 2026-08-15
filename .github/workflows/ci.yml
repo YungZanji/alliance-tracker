@@ -26,11 +26,14 @@ jobs:
         run: python -m pip install -r desktop/requirements.txt
 
       - name: Compile current desktop entrypoint
-        run: python -m py_compile desktop/main.py desktop/app_current.py desktop/roster_export.py
+        run: python -m py_compile desktop/main.py desktop/app_svs.py desktop/app_current.py desktop/svs_capture.py desktop/roster_export.py
 
       - name: Run desktop build checks
         working-directory: desktop
         run: python verify_build.py
+
+      - name: Test SVS participation capture
+        run: python tests/test_svs_capture.py
 
   portal:
     runs-on: ubuntu-latest

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import app_v170_runtime
-from app_current import App as CurrentApp
+from app_svs import App as CurrentApp
 
 # The current UI extends the tested capture/automation stack underneath it.
 app_v170_runtime.App = CurrentApp
