@@ -1,0 +1,250 @@
+.duel-history-panel {
+  margin-top: 18px;
+}
+
+.duel-history-head {
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.duel-history-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.duel-history-actions .select {
+  min-width: 190px;
+}
+
+.duel-history-status {
+  min-height: 22px;
+  padding: 0 18px 8px;
+  color: var(--muted, #95a6bc);
+  font-size: 13px;
+}
+
+.duel-history-status.success {
+  color: #70deb3;
+}
+
+.duel-history-status.error {
+  color: #ff8799;
+}
+
+.duel-history-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.duel-history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid rgba(126, 160, 199, .16);
+  border-radius: 12px;
+  background: rgba(11, 26, 44, .48);
+}
+
+.duel-history-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.duel-history-row-title,
+.duel-history-row-meta,
+.duel-history-days {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.duel-history-row-title strong {
+  font-size: 14px;
+}
+
+.duel-history-row-title span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(80, 133, 188, .13);
+  color: #9fb3ca;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.duel-history-row-meta {
+  margin-top: 5px;
+  color: #90a2b9;
+  font-size: 12px;
+}
+
+.duel-history-row-meta span + span::before {
+  content: "·";
+  margin-right: 8px;
+  opacity: .55;
+}
+
+.duel-history-days {
+  margin-top: 9px;
+}
+
+.duel-history-days span {
+  min-width: 82px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: rgba(83, 123, 166, .09);
+  color: #8fa2bb;
+  font-size: 11px;
+}
+
+.duel-history-days b {
+  margin-left: 4px;
+  color: #dbe7f5;
+}
+
+.duel-history-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.duel-history-restore-button {
+  border: 1px solid rgba(255, 121, 139, .28);
+  background: rgba(255, 101, 119, .12);
+  color: #ff9bab;
+}
+
+.duel-history-restore-button:hover {
+  background: rgba(255, 101, 119, .2);
+}
+
+.duel-history-preview {
+  margin: 0 16px 14px;
+  padding: 15px;
+  border: 1px solid rgba(57, 181, 255, .25);
+  border-radius: 12px;
+  background: rgba(21, 42, 67, .58);
+}
+
+.duel-history-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.duel-history-preview-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.duel-history-preview-head strong {
+  font-size: 17px;
+}
+
+.duel-history-preview-head span {
+  color: #93a4bb;
+  font-size: 12px;
+}
+
+.duel-history-preview-close {
+  border: 0;
+  background: transparent;
+  color: #93a4bb;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.duel-history-preview-metrics,
+.duel-history-preview-days {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.duel-history-preview-days {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.duel-history-preview-metrics span,
+.duel-history-preview-days span {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(7, 17, 31, .42);
+}
+
+.duel-history-preview small {
+  color: #8fa2bb;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.duel-history-preview b {
+  color: #f3f7fc;
+}
+
+.duel-history-preview-leaders {
+  display: grid;
+  gap: 5px;
+  margin-top: 13px;
+}
+
+.duel-history-preview-leaders > strong {
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.duel-history-preview-leaders span {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(7, 17, 31, .28);
+  font-size: 12px;
+}
+
+.duel-history-preview-leaders em {
+  color: #7eddb8;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.duel-history-empty {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .duel-history-head,
+  .duel-history-row {
+    flex-direction: column;
+  }
+
+  .duel-history-actions,
+  .duel-history-row-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .duel-history-actions > *,
+  .duel-history-row-actions > * {
+    flex: 1;
+  }
+
+  .duel-history-preview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .duel-history-preview-days {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
