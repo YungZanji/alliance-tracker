@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alliance-tracker",
-  "main": "./src/scoring-entry-v151.js",
+  "main": "./src/scoring-entry-v152.js",
   "compatibility_date": "2026-08-07",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
