@@ -20,5 +20,9 @@ assert.match(migration, /2026-08-30/);
 assert.match(migration, /l\.score - COALESCE\(current\.score,0\)/);
 assert.match(migration, /day_index=6/);
 assert.match(migration, /rollover_cumulative_recovery/);
+assert.doesNotMatch(migration, /CREATE\s+TEMP(?:ORARY)?\s+TABLE/i);
+assert.match(migration, /CREATE TABLE _rollover_week1_final/);
+assert.match(migration, /CREATE TABLE _rollover_week1_day6/);
+assert.match(migration, /DROP TABLE _rollover_week1_final/);
 
-console.log('Verified missed-Sunday rollover recovery and Monday score separation.');
+console.log('Verified missed-Sunday rollover recovery, Monday score separation, and D1-compatible migration staging.');
