@@ -3,7 +3,10 @@ PRAGMA foreign_keys = ON;
 -- The Sep 6 rollover capture landed just after the weekly reset. Rank type 2 is
 -- the cumulative Duel League total and the new Week 2 score was still zero, so
 -- the difference is the exact final Week 1 score for each player.
-CREATE TEMP TABLE _rollover_week1_final (
+-- Use ordinary staging tables because Wrangler's local D1 runner does not allow
+-- CREATE TEMP TABLE inside migrations.
+DROP TABLE IF EXISTS _rollover_week1_final;
+CREATE TABLE _rollover_week1_final (
   uid TEXT PRIMARY KEY,
   final_score INTEGER NOT NULL,
   captured_at TEXT NOT NULL,
@@ -67,7 +70,8 @@ WHERE cycle_id='2026-08-30'
   AND cycle_week=1
   AND uid IN (SELECT uid FROM _rollover_week1_final);
 
-CREATE TEMP TABLE _rollover_week1_day6 (
+DROP TABLE IF EXISTS _rollover_week1_day6;
+CREATE TABLE _rollover_week1_day6 (
   uid TEXT PRIMARY KEY,
   final_score INTEGER NOT NULL,
   captured_at TEXT NOT NULL,
