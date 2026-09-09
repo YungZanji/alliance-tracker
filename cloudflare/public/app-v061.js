@@ -68,7 +68,6 @@ function polishHome(main) {
   if (paragraph) paragraph.remove();
 
   polishFeature(main, 'State Ruler', 'Awaiting results', 'Awaiting results');
-  polishFeature(main, 'Glory War', 'Awaiting season start', 'Awaiting season start');
 }
 
 function polishFeature(main, title, copy, status) {
