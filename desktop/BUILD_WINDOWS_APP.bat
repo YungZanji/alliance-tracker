@@ -37,7 +37,7 @@ echo [2/8] Installing dependencies...
 
 echo.
 echo [3/8] Compiling application modules...
-".venv\Scripts\python.exe" -m py_compile main.py verify_build.py app_glory.py glory_war_capture.py app_svs.py svs_capture.py app_current.py app_v174_runtime_fix.py app_v174_runtime.py app_v172_runtime.py roster_export.py app_v171_runtime.py app_v170_runtime.py app_v162_runtime.py app_v161_runtime.py app_v160_runtime.py app_v150_runtime.py app_v143_runtime.py app_v142_import_runtime.py app_v142_runtime.py app_v141_runtime.py app_v140_runtime_fix.py app_v140_runtime.py app_v131_runtime.py app_v130_runtime.py app_v126_runtime.py app_v125_runtime.py app_v124_runtime_fix.py app_v124_runtime.py app_v123_runtime.py app_v122_runtime.py app_v120_runtime.py app_v120.py app_v110_runtime.py app_v110.py app_v100.py app_v090.py app_v080.py app_v070.py app_v061.py app_v060.py app.py startup.py capture.py cloud.py storage.py normalizers.py branding.py utils.py || goto :failed
+".venv\Scripts\python.exe" -m py_compile main.py verify_build.py app_event_capture.py app_glory.py glory_war_capture.py app_svs.py svs_capture.py app_current.py app_v174_runtime_fix.py app_v174_runtime.py app_v172_runtime.py roster_export.py app_v171_runtime.py app_v170_runtime.py app_v162_runtime.py app_v161_runtime.py app_v160_runtime.py app_v150_runtime.py app_v143_runtime.py app_v142_import_runtime.py app_v142_runtime.py app_v141_runtime.py app_v140_runtime_fix.py app_v140_runtime.py app_v131_runtime.py app_v130_runtime.py app_v126_runtime.py app_v125_runtime.py app_v124_runtime_fix.py app_v124_runtime.py app_v123_runtime.py app_v122_runtime.py app_v120_runtime.py app_v120.py app_v110_runtime.py app_v110.py app_v100.py app_v090.py app_v080.py app_v070.py app_v061.py app_v060.py app.py startup.py capture.py cloud.py storage.py normalizers.py branding.py utils.py || goto :failed
 
 echo.
 echo [4/8] Running build checks...
@@ -76,7 +76,7 @@ exit /b 0
 echo.
 echo ============================================================
 echo BUILD FAILED
- echo ============================================================
+echo ============================================================
 echo Review the error printed immediately above this message.
 pause
 exit /b 1

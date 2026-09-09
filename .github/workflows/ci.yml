@@ -26,7 +26,7 @@ jobs:
         run: python -m pip install -r desktop/requirements.txt
 
       - name: Compile current desktop entrypoint
-        run: python -m py_compile desktop/main.py desktop/app_glory.py desktop/glory_war_capture.py desktop/app_svs.py desktop/app_current.py desktop/svs_capture.py desktop/roster_export.py
+        run: python -m py_compile desktop/main.py desktop/app_event_capture.py desktop/app_glory.py desktop/glory_war_capture.py desktop/app_svs.py desktop/app_current.py desktop/svs_capture.py desktop/roster_export.py
 
       - name: Run desktop build checks
         working-directory: desktop
