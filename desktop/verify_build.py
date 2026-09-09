@@ -6,6 +6,8 @@ startup = (ROOT / "startup.py").read_text(encoding="utf-8")
 entrypoint = (ROOT / "main.py").read_text(encoding="utf-8")
 svs_runtime = (ROOT / "app_svs.py").read_text(encoding="utf-8")
 svs_capture = (ROOT / "svs_capture.py").read_text(encoding="utf-8")
+glory_runtime = (ROOT / "app_glory.py").read_text(encoding="utf-8")
+glory_capture = (ROOT / "glory_war_capture.py").read_text(encoding="utf-8")
 discovery_runtime = (ROOT / "app_v170_runtime.py").read_text(encoding="utf-8")
 responsive_runtime = (ROOT / "app_v172_runtime.py").read_text(encoding="utf-8")
 tab_runtime = (ROOT / "app_v174_runtime.py").read_text(encoding="utf-8")
@@ -24,10 +26,9 @@ agent_source = "\n".join(path.read_text(encoding="utf-8") for path in agent_part
 assert "1.7.0" in startup
 assert "from app_v170_runtime import App" in startup
 assert "1.7.6" in entrypoint
-assert "from app_svs import App as CurrentApp" in entrypoint
+assert "from app_glory import App as CurrentApp" in entrypoint
 assert "main.py" in spec
 
-# Workspace launch/tiling/shutdown remains independent from capture.
 for marker in (
     "⏻  START WORKSPACE",
     "⏻  SHUT DOWN",
@@ -48,7 +49,6 @@ for marker in (
 assert "self.attach()" not in power_runtime
 assert "self._capture_studio_start()" not in power_runtime
 
-# Dedicated workspace pages and the existing capture tools remain available.
 assert "return RootApp.page(self, key, title, subtitle)" in tab_runtime
 assert "ctk.CTkScrollableFrame(" not in tab_runtime
 assert "move only the intended section panel" in tab_fix
@@ -67,7 +67,6 @@ for marker in (
 ):
     assert marker in tab_runtime
 
-# Roster activity still uses the game-provided Last Online field and online-at-capture fallback.
 for marker in (
     "al.rank",
     "al.arena.power",
@@ -83,7 +82,6 @@ for marker in (
     assert marker in roster_export
 assert "BROAD_DISCOVERY_PURPOSES.add(STATE_RULER_PURPOSE)" in responsive_runtime
 
-# SVS capture combines the known score feed with same-session roster activity.
 for marker in (
     "START SVS CAPTURE",
     "STOP, BUILD & SYNC",
@@ -107,7 +105,27 @@ for marker in (
 ):
     assert marker in svs_capture
 
-# Full-response discovery and fresh-session replay stay on the existing code path.
+for marker in (
+    "START GLORY WAR CAPTURE",
+    "STOP, BUILD & SYNC",
+    "BROAD_DISCOVERY_PURPOSES.add(GLORY_WAR_PURPOSE)",
+    '"glory_war_rankings"',
+    "build_glory_war_snapshot",
+    "Opponent player scores archived: no",
+):
+    assert marker in glory_runtime
+for marker in (
+    "Glory War Score Capture",
+    "alliance.declare.war.personal.rank",
+    'dataset="glory_war_rankings"',
+    '"primaryStateScore"',
+    '"opponentStateScore"',
+    '"opponentAllianceAbbr"',
+    '"opponentServerId"',
+    '"opponentPlayerRowsStored": False',
+):
+    assert marker in glory_capture
+
 assert "capture_all_responses = False" in capture
 assert "set_discovery_capture" in capture
 assert "self.state.discovery_all or is_discovery_command(command)" in capture
@@ -125,6 +143,6 @@ assert "Full Data Discovery" in discovery_runtime
 assert "discovery-timeline.jsonl" in discovery_runtime
 
 print(
-    "Verified SVS score/participation capture, roster activity, workspace power, "
+    "Verified Glory War archive, SVS score/participation capture, roster activity, workspace power, "
     "dedicated tabs, discovery capture, and typed Duel replay."
 )
