@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from normalizers import Snapshot
 from utils import json_hash
@@ -81,6 +81,38 @@ def _alliance_key(row: dict[str, Any]) -> tuple[str, str, str]:
         str(row.get("allianceAbbr") or ""),
         str(row.get("allianceName") or ""),
     )
+
+
+def session_has_glory_war(session_id: str, sessions_dir: Path) -> bool:
+    path = sessions_dir / session_id / "raw" / "responses.jsonl"
+    if not path.exists():
+        return False
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if GLORY_WAR_COMMAND not in line:
+                    continue
+                try:
+                    response = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if str(response.get("command") or "") == GLORY_WAR_COMMAND:
+                    return True
+    except OSError:
+        return False
+    return False
+
+
+def find_glory_war_sessions(
+    sessions_dir: Path,
+    sessions: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    for session in sessions:
+        session_id = str(session.get("id") or "").strip()
+        if session_id and session_has_glory_war(session_id, sessions_dir):
+            output.append(dict(session))
+    return output
 
 
 def _read_latest(session_id: str, sessions_dir: Path) -> tuple[dict[str, Any], str, int | None]:

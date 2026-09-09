@@ -7,6 +7,7 @@ entrypoint = (ROOT / "main.py").read_text(encoding="utf-8")
 svs_runtime = (ROOT / "app_svs.py").read_text(encoding="utf-8")
 svs_capture = (ROOT / "svs_capture.py").read_text(encoding="utf-8")
 glory_runtime = (ROOT / "app_glory.py").read_text(encoding="utf-8")
+event_capture_runtime = (ROOT / "app_event_capture.py").read_text(encoding="utf-8")
 glory_capture = (ROOT / "glory_war_capture.py").read_text(encoding="utf-8")
 discovery_runtime = (ROOT / "app_v170_runtime.py").read_text(encoding="utf-8")
 responsive_runtime = (ROOT / "app_v172_runtime.py").read_text(encoding="utf-8")
@@ -26,7 +27,7 @@ agent_source = "\n".join(path.read_text(encoding="utf-8") for path in agent_part
 assert "1.7.0" in startup
 assert "from app_v170_runtime import App" in startup
 assert "1.7.6" in entrypoint
-assert "from app_glory import App as CurrentApp" in entrypoint
+assert "from app_event_capture import App as CurrentApp" in entrypoint
 assert "main.py" in spec
 
 for marker in (
@@ -102,6 +103,10 @@ for marker in (
     '"roster_last_seen"',
     '"windowStart"',
     '"windowEnd"',
+    '"opponentServerId"',
+    '"opponentDetectionConfidence"',
+    '"explicit_payload_hint"',
+    '"ranking_player_servers"',
 ):
     assert marker in svs_capture
 
@@ -115,6 +120,14 @@ for marker in (
 ):
     assert marker in glory_runtime
 for marker in (
+    "Glory War Capture",
+    "SAVED DISCOVERY IMPORT",
+    "IMPORT & SYNC SELECTED",
+    "find_glory_war_sessions",
+    "Imported saved session",
+):
+    assert marker in event_capture_runtime
+for marker in (
     "Glory War Score Capture",
     "alliance.declare.war.personal.rank",
     'dataset="glory_war_rankings"',
@@ -123,6 +136,8 @@ for marker in (
     '"opponentAllianceAbbr"',
     '"opponentServerId"',
     '"opponentPlayerRowsStored": False',
+    "session_has_glory_war",
+    "find_glory_war_sessions",
 ):
     assert marker in glory_capture
 
@@ -143,6 +158,6 @@ assert "Full Data Discovery" in discovery_runtime
 assert "discovery-timeline.jsonl" in discovery_runtime
 
 print(
-    "Verified Glory War archive, SVS score/participation capture, roster activity, workspace power, "
+    "Verified Glory War live/history capture, SVS opponent/participation capture, roster activity, workspace power, "
     "dedicated tabs, discovery capture, and typed Duel replay."
 )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter, defaultdict
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,22 @@ _ALLIANCE_ID_KEYS = ("aid", "allianceId", "alliance_id")
 _ALLIANCE_ABBR_KEYS = ("abbr", "allianceAbbr", "alliance_abbr", "alAbbr", "allianceTag")
 _ALLIANCE_NAME_KEYS = ("alName", "allianceName", "alliance_name")
 _SERVER_KEYS = ("serverId", "server_id", "sid")
+_OPPONENT_HINT_KEYS = {
+    "opponentserverid",
+    "opponentserver",
+    "opponentstate",
+    "enemyserverid",
+    "enemyserver",
+    "enemystate",
+    "rivalserverid",
+    "rivalserver",
+    "rivalstate",
+    "targetserverid",
+    "targetserver",
+    "targetstate",
+    "opponentsid",
+    "enemysid",
+}
 
 
 def _parse_iso(value: Any) -> datetime | None:
@@ -87,7 +104,6 @@ def _walk_score_candidates(value: Any):
         return
 
     if isinstance(value, (list, tuple)):
-        # Some State Ruler rank payloads flatten each row to [uid, score, position].
         if len(value) >= 2 and _looks_like_uid(value[0]):
             score = _int_or_none(value[1])
             if score is not None:
@@ -105,6 +121,22 @@ def _walk_score_candidates(value: Any):
         for child in value:
             if isinstance(child, (dict, list, tuple)):
                 yield from _walk_score_candidates(child)
+
+
+def _walk_opponent_hints(value: Any):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized = "".join(ch for ch in str(key).lower() if ch.isalnum())
+            if normalized in _OPPONENT_HINT_KEYS:
+                server_id = _int_or_none(child)
+                if server_id is not None and 1 <= server_id <= 99999:
+                    yield server_id
+            if isinstance(child, (dict, list, tuple)):
+                yield from _walk_opponent_hints(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            if isinstance(child, (dict, list, tuple)):
+                yield from _walk_opponent_hints(child)
 
 
 def _activity_window(captured_at: Any) -> tuple[datetime, datetime]:
@@ -130,6 +162,7 @@ def _read_score_rows(session_id: str, sessions_dir: Path) -> tuple[dict[str, dic
     response_count = 0
     parsed_rows = 0
     latest_capture = ""
+    opponent_hints: list[int] = []
 
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -148,6 +181,7 @@ def _read_score_rows(session_id: str, sessions_dir: Path) -> tuple[dict[str, dic
             latest_capture = captured_at
 
         payload = response.get("payload")
+        opponent_hints.extend(_walk_opponent_hints(payload))
         position_fallback = 0
         for candidate in _walk_score_candidates(payload):
             position_fallback += 1
@@ -173,11 +207,75 @@ def _read_score_rows(session_id: str, sessions_dir: Path) -> tuple[dict[str, dic
         "parsedScoreRows": parsed_rows,
         "sourceCommands": sorted(source_commands),
         "latestScoreCapture": latest_capture,
+        "opponentServerHints": opponent_hints,
+    }
+
+
+def _detect_matchup(
+    all_scores: dict[str, dict[str, Any]],
+    score_meta: dict[str, Any],
+    members: list[dict[str, Any]],
+) -> dict[str, Any]:
+    primary_counter = Counter(
+        server_id
+        for row in members
+        if (server_id := _int_or_none(row.get("serverId"))) is not None
+    )
+    primary_server_id = primary_counter.most_common(1)[0][0] if primary_counter else None
+
+    hint_counter = Counter(
+        server_id
+        for server_id in score_meta.get("opponentServerHints", [])
+        if server_id is not None and server_id != primary_server_id
+    )
+    if hint_counter:
+        opponent_server_id, occurrences = hint_counter.most_common(1)[0]
+        return {
+            "primaryServerId": primary_server_id,
+            "opponentServerId": opponent_server_id,
+            "opponentState": opponent_server_id,
+            "opponentLabel": f"State {opponent_server_id}",
+            "opponentDetectionSource": "explicit_payload_hint",
+            "opponentDetectionConfidence": "explicit",
+            "opponentEvidenceRows": occurrences,
+        }
+
+    row_counts: Counter[int] = Counter()
+    row_scores: defaultdict[int, int] = defaultdict(int)
+    for row in all_scores.values():
+        server_id = _int_or_none(row.get("serverId"))
+        if server_id is None or server_id == primary_server_id:
+            continue
+        row_counts[server_id] += 1
+        row_scores[server_id] += int(row.get("score") or 0)
+
+    if row_counts:
+        opponent_server_id = max(
+            row_counts,
+            key=lambda server_id: (row_counts[server_id], row_scores[server_id], -server_id),
+        )
+        return {
+            "primaryServerId": primary_server_id,
+            "opponentServerId": opponent_server_id,
+            "opponentState": opponent_server_id,
+            "opponentLabel": f"State {opponent_server_id}",
+            "opponentDetectionSource": "ranking_player_servers",
+            "opponentDetectionConfidence": "ranking_rows",
+            "opponentEvidenceRows": int(row_counts[opponent_server_id]),
+        }
+
+    return {
+        "primaryServerId": primary_server_id,
+        "opponentServerId": None,
+        "opponentState": None,
+        "opponentLabel": "",
+        "opponentDetectionSource": "not_detected",
+        "opponentDetectionConfidence": "none",
+        "opponentEvidenceRows": 0,
     }
 
 
 def save_snapshot(store: Any, session_id: str, snapshot: Snapshot) -> int:
-    """Persist one derived snapshot through the same local table/files used by captured datasets."""
     inserted = False
     snapshot_id = 0
     with store._connect() as db:
@@ -234,6 +332,8 @@ def build_svs_snapshots(
             "An SVS score response was captured, but its player rows could not be read. Keep the session package for inspection and try the Personal/High Score leaderboard again."
         )
 
+    matchup = _detect_matchup(all_scores, score_meta, members)
+
     scores: dict[str, dict[str, Any]] = {}
     for uid, source in all_scores.items():
         member = member_by_uid.get(uid)
@@ -285,6 +385,16 @@ def build_svs_snapshots(
         source_commands[0] if source_commands else SVS_SCORE_COMMANDS[0],
     )
 
+    matchup_context = {
+        "primaryServerId": matchup["primaryServerId"],
+        "opponentServerId": matchup["opponentServerId"],
+        "opponentState": matchup["opponentState"],
+        "opponentLabel": matchup["opponentLabel"],
+        "opponentDetectionSource": matchup["opponentDetectionSource"],
+        "opponentDetectionConfidence": matchup["opponentDetectionConfidence"],
+        "opponentEvidenceRows": matchup["opponentEvidenceRows"],
+    }
+
     snapshots: list[Snapshot] = []
     if scores:
         ranking_rows = sorted(
@@ -301,6 +411,7 @@ def build_svs_snapshots(
                     "leaderboardComplete": False,
                     "memberFiltered": True,
                     "sourceCommands": source_commands,
+                    **matchup_context,
                 },
                 rows=ranking_rows,
                 sequence=None,
@@ -309,6 +420,7 @@ def build_svs_snapshots(
                         "dataset": "state_ruler_rankings",
                         "sessionId": session_id,
                         "commands": source_commands,
+                        "matchup": matchup_context,
                         "rows": ranking_rows,
                     }
                 ),
@@ -326,6 +438,7 @@ def build_svs_snapshots(
                 "cutoff": "07:00 America/Vancouver",
                 "scorePlayersIncluded": len(scores),
                 "activityOnlyPlayersIncluded": activity_only,
+                **matchup_context,
             },
             rows=attendance_rows,
             sequence=None,
@@ -335,6 +448,7 @@ def build_svs_snapshots(
                     "sessionId": session_id,
                     "windowStart": window_start_iso,
                     "windowEnd": window_end_iso,
+                    "matchup": matchup_context,
                     "rows": attendance_rows,
                 }
             ),
@@ -353,5 +467,6 @@ def build_svs_snapshots(
         "leaderboardPlayers": len(scores),
         "activityOnlyPlayers": activity_only,
         "participants": len(attendance_rows),
+        **matchup,
     }
     return snapshots, summary

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "desktop"))
 
-from glory_war_capture import build_glory_war_snapshot
+from glory_war_capture import build_glory_war_snapshot, find_glory_war_sessions
 
 
 def main() -> None:
@@ -35,6 +35,13 @@ def main() -> None:
         }
         (raw / "responses.jsonl").write_text(json.dumps(line) + "\n", encoding="utf-8")
 
+        other_raw = sessions / "other-session" / "raw"
+        other_raw.mkdir(parents=True)
+        (other_raw / "responses.jsonl").write_text(
+            json.dumps({"command": "al.rank", "capturedAt": "2026-09-09T05:00:00Z", "payload": {}}) + "\n",
+            encoding="utf-8",
+        )
+
         snapshot, summary = build_glory_war_snapshot(session_id, sessions)
         assert snapshot.dataset == "glory_war_rankings"
         assert [row["name"] for row in snapshot.rows] == ["Alpha", "Bravo"]
@@ -48,7 +55,16 @@ def main() -> None:
         assert summary["result"] == "LOSS"
         assert snapshot.context["opponentPlayerRowsStored"] is False
 
-    print("Verified Glory War state totals, opponent identity, result, and WDZ-only player archive.")
+        found = find_glory_war_sessions(
+            sessions,
+            [
+                {"id": "glory-test", "label": "Full Data Discovery"},
+                {"id": "other-session", "label": "Other"},
+            ],
+        )
+        assert [row["id"] for row in found] == ["glory-test"]
+
+    print("Verified Glory War state totals, opponent identity, result, WDZ-only archive, and saved-session discovery import.")
 
 
 if __name__ == "__main__":
