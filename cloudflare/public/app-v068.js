@@ -73,7 +73,6 @@ async function enhanceDuelScoreScopes() {
     cell.title = 'Cumulative score across all Alliance Duel weeks played in this four-week league.';
   });
 
-  // Clarify the two totals at the summary level too.
   const metrics = [...main.querySelectorAll('.section.metrics .metric')];
   const weekMetric = metrics.find(node => /week total/i.test(node.querySelector('.metric-label')?.textContent || ''));
   if (weekMetric) {
@@ -102,16 +101,28 @@ async function enhanceHomeGloryWar() {
   card.dataset.v070GloryLoading = '1';
   try {
     const data = await api('/api/glory-war');
-    if (!(data.players || []).length) return;
-    const leader = data.players[0];
-    setText(card.querySelector('p'), `Latest leader: ${leader?.name || 'Awaiting results'}`);
+    const selected = data.selected || data.matches?.[0] || null;
+    if (!selected) return;
+
+    const opponent = selected.opponentAllianceAbbr || selected.opponentAllianceName || (selected.opponentServerId ? `S${Number(selected.opponentServerId)}` : 'Opponent');
+    const result = String(selected.result || '').toUpperCase();
+    const leader = (data.players || [])[0] || null;
+    const title = card.querySelector('h2');
+    setText(title, `Glory War: WDZ vs ${opponent}`);
+
+    const scoreLine = `${format(selected.primaryStateScore)} vs ${format(selected.opponentStateScore)}`;
+    const leaderText = leader?.name ? ` · Leader: ${leader.name}` : '';
+    setText(card.querySelector('p'), `${result || 'RESULT'} · ${scoreLine}${leaderText}`);
+
     const badge = card.querySelector('.badge');
     if (badge) {
-      setText(badge, 'Latest results');
-      badge.className = 'badge badge-purple';
+      setText(badge, result || 'Results');
+      const tone = result === 'WIN' ? 'green' : result === 'LOSS' ? 'red' : 'purple';
+      badge.className = `badge badge-${tone}`;
     }
     card.dataset.v070GloryLoaded = '1';
-  } catch (_) {
+  } catch (error) {
+    console.warn('Could not refresh Home Glory War result:', error);
   } finally {
     card.dataset.v070GloryLoading = '0';
   }
