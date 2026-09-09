@@ -14,7 +14,6 @@ function schedule() {
     scheduled = false;
     await Promise.allSettled([
       enhanceDuelScoreScopes(),
-      enhanceGloryWarPersistence(),
       enhanceHomeGloryWar(),
     ]);
   }, 35);
@@ -115,30 +114,6 @@ async function enhanceHomeGloryWar() {
   } catch (_) {
   } finally {
     card.dataset.v070GloryLoading = '0';
-  }
-}
-
-async function enhanceGloryWarPersistence() {
-  const main = document.getElementById('main');
-  const title = main?.querySelector('.page-head h1');
-  if (!title?.textContent.startsWith('Glory War')) return;
-  const panel = main.querySelector('.coming') || main.querySelector('.panel');
-  if (!panel || panel.dataset.v070GloryLoading === '1') return;
-  panel.dataset.v070GloryLoading = '1';
-  try {
-    const data = await api('/api/glory-war');
-    if (!(data.players || []).length) return;
-    panel.className = 'panel';
-    panel.innerHTML = `
-      <div class="panel-head"><div><div class="panel-title">Glory War · Latest captured results</div></div></div>
-      <div class="table-wrap"><table class="responsive-table"><thead><tr><th>Rank</th><th>Player</th><th class="numeric">Score</th></tr></thead><tbody>
-      ${(data.players || []).map(row => `<tr><td class="rank-cell">#${Number(row.rank || 0)}</td><td class="player-cell"><strong>${esc(row.name)}</strong><small>S${Number(row.serverId || 0)}</small></td><td class="numeric score">${format(row.creditedScore)}</td></tr>`).join('')}
-      </tbody></table></div>`;
-    panel.dataset.v070GloryLoaded = '1';
-  } catch (error) {
-    console.warn('Could not load persistent Glory War results:', error);
-  } finally {
-    panel.dataset.v070GloryLoading = '0';
   }
 }
 

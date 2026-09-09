@@ -1,4 +1,4 @@
-import './app-v084.js';
+import './app-v084.js?v=110';
 
 let gloryBusy = false;
 let scheduled = false;
@@ -83,7 +83,7 @@ function paintGlory(main, data) {
     const q = String(query || '').trim().toLowerCase();
     const filtered = rows.filter(row => !q || String(row.name || '').toLowerCase().includes(q));
     document.getElementById('glory-table').innerHTML = filtered.length
-      ? `<table class="responsive-table"><thead><tr><th>Rank</th><th>Player</th><th class="numeric">Glory War score</th></tr></thead><tbody>${filtered.map(row => `<tr><td class="rank-cell">#${Number(row.rank || 0)}</td><td class="player-cell"><strong>${esc(row.name)}</strong><small>${esc(row.allianceAbbr || 'WDZ')} · S${Number(row.serverId || selected.primaryServerId || 0)}</small></td><td class="numeric score">${fmt(row.score)}</td></tr>`).join('')}</tbody></table>`
+      ? `<table class="responsive-table"><thead><tr><th>Rank</th><th>Player</th><th class="numeric">Glory War score</th></tr></thead><tbody>${filtered.map(row => `<tr data-player="${esc(row.publicId || '')}"><td class="rank-cell">#${Number(row.rank || 0)}</td><td class="player-cell"><strong>${esc(row.name)}</strong><small>${esc(row.allianceAbbr || 'WDZ')} · S${Number(row.serverId || selected.primaryServerId || 0)}</small></td><td class="numeric score">${fmt(row.score)}</td></tr>`).join('')}</tbody></table>`
       : '<div class="empty">No matching players.</div>';
   };
   renderRows('');
