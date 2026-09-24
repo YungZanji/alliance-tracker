@@ -1,0 +1,19 @@
+.glory-plan-tabs{display:flex;gap:8px;margin:18px 0 20px;padding:5px;width:max-content;max-width:100%;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.glory-plan-tabs button{border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-weight:750;padding:9px 14px;cursor:pointer}
+.glory-plan-tabs button.active{background:var(--blue-soft,#1d6cff1c);color:var(--text);box-shadow:inset 0 0 0 1px #5da8ff33}
+.glory-plan-summary{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.glory-plan-status{white-space:normal}
+.glory-plan-meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.glory-plan-meta span{padding:6px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.glory-plan-frame-card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#07101d;box-shadow:var(--shadow)}
+.glory-plan-frame-head{min-height:56px;padding:10px 12px 10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.glory-plan-frame-head strong,.glory-plan-frame-head small{display:block}.glory-plan-frame-head small{margin-top:2px;color:var(--muted);font-size:11px}
+.glory-plan-frame{display:block;width:100%;height:min(76vh,900px);min-height:620px;border:0;background:#07101d}
+.glory-plan-frame-loading{position:absolute;inset:57px 0 0;z-index:2;display:grid;place-items:center;background:#07101d;color:#9aabc1}
+.glory-plan-admin{margin-top:18px}.glory-plan-upload-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.glory-plan-upload-status{min-height:20px;margin-top:8px}.glory-plan-history{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.glory-plan-history summary{cursor:pointer;font-weight:750}.glory-plan-history-list{display:grid;gap:8px;margin-top:10px}
+.glory-plan-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.glory-plan-history-row strong,.glory-plan-history-row small{display:block}.glory-plan-history-row small{margin-top:3px;color:var(--muted)}
+.glory-plan-empty{margin-top:8px}
+@media(max-width:760px){.glory-plan-tabs{width:100%}.glory-plan-tabs button{flex:1}.glory-plan-frame{height:72vh;min-height:520px}.glory-plan-frame-head{align-items:flex-start}.glory-plan-upload-row{grid-template-columns:1fr}.glory-plan-history-row{align-items:flex-start;flex-direction:column}}
