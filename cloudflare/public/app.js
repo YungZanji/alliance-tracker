@@ -228,7 +228,11 @@ function navigate(route, push = true) {
   if (route === 'leaderboards') return renderParticipation();
   if (route === 'duel') return renderDuelPage();
   if (route === 'state-ruler') return renderComing('State Ruler', 'State versus State participation', 'ruler');
-  if (route === 'glory-war') return renderComing('Glory War', 'Glory War participation', 'glory');
+  if (route === 'glory-war') {
+    renderGloryWarLoading();
+    window.dispatchEvent(new CustomEvent('alliance-route-change', { detail: { route: 'glory-war' } }));
+    return;
+  }
   if (route === 'canyon') return renderCanyon();
   if (route === 'admin') return renderAdmin();
 }
@@ -575,6 +579,18 @@ async function openPlayer(publicId) {
     const p = data.player;
     target.innerHTML = `<div class="card" style="margin:16px"><div class="page-head" style="margin:0"><div><div class="eyebrow" style="color:var(--blue)">PLAYER DETAIL</div><h2 style="font-size:28px;margin:4px 0">${esc(p.name)}</h2><p>${esc(p.allianceAbbr)} · Server ${fmt(p.serverId)} · ${data.cyclesParticipated} duel league${data.cyclesParticipated === 1 ? '' : 's'}</p></div><div style="text-align:right"><div class="metric-label">All duel points</div><div class="metric-value">${fmt(data.allTimeTotal)}</div></div></div></div>`;
   } catch (err) { target.innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+}
+
+function renderGloryWarLoading() {
+  document.getElementById('main').innerHTML = `
+    ${pageHead('Glory War', 'Weekly command map and completed battle history.')}
+    <section class="panel coming glory-route-loading">
+      <div>
+        <div class="coming-icon">${icons.glory}</div>
+        <h2>Loading Glory War…</h2>
+        <p class="muted">Opening the current Battle Plan and Results Archive.</p>
+      </div>
+    </section>`;
 }
 
 function renderComing(title, subtitle, icon) {
