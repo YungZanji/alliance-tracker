@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alliance-tracker",
-  "main": "./src/scoring-entry-v157.js",
+  "main": "./src/scoring-entry-v158.js",
   "compatibility_date": "2026-08-07",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
@@ -10,7 +10,7 @@
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/glory-war-map.html"]
   },
   "d1_databases": [
     {
