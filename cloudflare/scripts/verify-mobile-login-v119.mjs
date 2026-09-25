@@ -12,6 +12,7 @@ assert.match(app, /credentials: 'same-origin'/);
 assert.match(app, /allow401: true/);
 assert.match(app, /did not keep the sign-in session/);
 assert.match(app, /\/gw-map/);
-assert.match(app, /navigate\(requestedRoute === 'glory-war'/);
+assert.match(app, /requestedRoute === 'glory-war'/);
+assert.match(app, /path === '\/canyon'/);
 
 console.log('Verified mobile-compatible session cookies, explicit fetch credentials, accurate login errors, and /gw-map post-login routing.');

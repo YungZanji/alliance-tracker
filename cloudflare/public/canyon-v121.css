@@ -1,0 +1,174 @@
+.canyon-card{
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--card);
+  box-shadow:var(--shadow);
+}
+.canyon-toolbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:14px;
+  border-bottom:1px solid var(--line);
+  background:var(--card-2);
+}
+.canyon-language-tabs{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  flex:1;
+}
+.canyon-language-button{
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--card);
+  color:var(--muted);
+  padding:8px 12px;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+}
+.canyon-language-button.active{
+  border-color:color-mix(in srgb,var(--blue) 55%,var(--line));
+  background:var(--blue-soft);
+  color:var(--ink);
+}
+.canyon-language-button:disabled{opacity:.38;cursor:not-allowed}
+.canyon-language-select-wrap{display:none}
+.canyon-meta{color:var(--muted);font-size:12px;white-space:nowrap}
+.canyon-viewer{background:#08121f}
+.canyon-image-button{
+  display:block;
+  width:100%;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:#08121f;
+  cursor:zoom-in;
+}
+.canyon-image{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:min(76vh,900px);
+  object-fit:contain;
+  margin:auto;
+  background:#08121f;
+}
+.canyon-viewer-foot{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  border-top:1px solid var(--line);
+  background:var(--card-2);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:750;
+}
+.canyon-empty{
+  min-height:360px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:6px;
+  padding:30px;
+  text-align:center;
+  color:var(--muted);
+}
+.canyon-empty strong{color:var(--ink);font-size:18px}
+.canyon-admin{margin-top:18px}
+.canyon-admin-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:16px;
+}
+.canyon-admin-head h2{margin:3px 0 5px}
+.canyon-admin-head p{margin:0}
+.canyon-upload-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.canyon-upload-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(180px,260px);
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--card-2);
+}
+.canyon-upload-row strong,.canyon-upload-row small{display:block}
+.canyon-upload-row small{margin-top:3px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.canyon-upload-status{min-height:20px;margin-top:10px}
+.canyon-lightbox{
+  position:fixed;
+  z-index:200;
+  inset:0;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  background:#02060beF;
+  backdrop-filter:blur(12px);
+}
+.canyon-lightbox-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));
+  padding-top:max(10px,env(safe-area-inset-top));
+  background:#07111f;
+  border-bottom:1px solid #ffffff18;
+  color:#fff;
+}
+.canyon-lightbox-bar .icon-btn{font-size:28px;line-height:1}
+.canyon-lightbox-scroll{
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  display:grid;
+  place-items:center;
+  padding:14px;
+}
+.canyon-lightbox-scroll img{
+  display:block;
+  width:min(1376px,100%);
+  height:auto;
+  max-width:none;
+  margin:auto;
+}
+@media(max-width:760px){
+  .canyon-toolbar{display:block;padding:10px}
+  .canyon-language-tabs{display:none}
+  .canyon-language-select-wrap{display:grid;gap:5px}
+  .canyon-language-select-wrap span{
+    color:var(--muted);
+    font-size:10px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .canyon-language-select{width:100%}
+  .canyon-meta{margin-top:8px;white-space:normal}
+  .canyon-card{border-radius:16px}
+  .canyon-image{max-height:none}
+  .canyon-viewer-foot{padding:9px 10px}
+  .canyon-admin-head{display:block}
+  .canyon-admin-head .btn{width:100%;margin-top:12px}
+  .canyon-upload-grid{grid-template-columns:1fr}
+  .canyon-upload-row{grid-template-columns:1fr;gap:8px}
+  .canyon-lightbox-scroll{
+    display:block;
+    padding:10px;
+  }
+  .canyon-lightbox-scroll img{
+    width:1100px;
+    max-width:none;
+  }
+}
+@media(orientation:landscape) and (max-height:620px){
+  .canyon-image{max-height:calc(100dvh - 150px)}
+}

@@ -54,6 +54,6 @@ assert.match(ui, /gloryWarBaseline/);
 assert.match(ui, /playedEvents/);
 assert.match(ui, /genuine missed completed event is zero/);
 assert.match(index, /app-v086\.js\?v=117/);
-assert.match(wrangler, /scoring-entry-v158\.js/);
+assert.match(wrangler, /scoring-entry-v159\.js/);
 
 console.log('Verified Glory War Contribution Index, 1M baseline, Bye/Leave/No Event handling, missed-event zero, Admin control, and active leaderboard display.');
