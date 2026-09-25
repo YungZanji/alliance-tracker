@@ -50,6 +50,7 @@ async function boot() {
     renderLogin();
   }
   window.addEventListener('hashchange', () => state.user && navigate(location.hash.slice(1) || initialRoute(), false));
+  window.addEventListener('popstate', () => state.user && navigate(initialRoute(), false));
 }
 
 function initialRoute() {
