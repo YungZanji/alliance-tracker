@@ -82,7 +82,7 @@ async function handleLogin(request, env) {
   } catch (_) {
     return json({ ok: false, error: 'Enter your player UID.' }, 400);
   }
-  const uid = String(body?.uid || '').trim();
+  const uid = String(body?.uid || '').replace(/[^0-9]/g, '');
   const now = new Date();
   const nowIso = now.toISOString();
   const ipHash = await privacyHash(clientIp(request), env);
@@ -129,7 +129,10 @@ async function handleLogin(request, env) {
     ).bind(uid, enteredUidHash, String(player.current_name || ''), 1, 'login', ipHash, country, colo, agent, nowIso)
   ]);
 
-  const headers = new Headers({ 'content-type': 'application/json; charset=utf-8' });
+  const headers = new Headers({
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store'
+  });
   headers.append('set-cookie', sessionCookie(token, SESSION_DAYS * 86_400));
   return new Response(JSON.stringify({ ok: true, user: publicUser(player) }), { status: 200, headers });
 }
@@ -141,7 +144,7 @@ async function handleLogout(request, env) {
     await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(hash).run();
   }
   const headers = new Headers({ 'content-type': 'application/json; charset=utf-8' });
-  headers.append('set-cookie', 'at_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');
+  headers.append('set-cookie', 'at_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Priority=High; Max-Age=0');
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
 }
 
@@ -506,7 +509,7 @@ function cookieValue(request, name) {
 }
 
 function sessionCookie(token, maxAge) {
-  return `at_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+  return `at_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Priority=High; Max-Age=${maxAge}`;
 }
 
 function json(value, status = 200, sourceHeaders = undefined) {
