@@ -1,3 +1,5 @@
+.mobile-nav-button{display:none}
+
 /* Alliance Tracker 0.6.2 review: phone-first score and leaderboard layouts. */
 
 #duel-table td.duel-daily-score{
@@ -26,29 +28,43 @@
   body{overflow-x:hidden}
   .site-header{position:sticky;top:0}
   .nav{
-    padding:9px 12px 10px;
+    position:relative;
+    min-height:58px;
+    padding:9px 12px;
     gap:8px;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
   }
   .brand{flex:1 1 auto;min-width:0}
   .brand-mark{width:38px;height:38px;font-size:15px;border-radius:9px}
   .brand-copy{font-size:13px}
   .brand-copy small{font-size:8px}
   .account-pill{display:none}
-  .nav-actions{margin-left:auto}
+  .nav-actions{margin-left:auto;gap:7px}
   .icon-btn{width:37px;height:37px;border-radius:9px}
+  .mobile-nav-button{display:grid}
   .nav-links{
-    order:3;
-    flex:1 0 100%;
-    display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:5px;
-    overflow:visible;
+    position:absolute;
+    z-index:80;
+    left:10px;
+    right:10px;
+    top:calc(100% + 7px);
+    display:none;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+    padding:8px;
+    max-height:calc(100dvh - 86px);
+    overflow-y:auto;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;
+    background:rgba(7,17,31,.98);
+    box-shadow:0 18px 50px rgba(0,0,0,.38);
+    backdrop-filter:blur(18px);
   }
+  .nav.mobile-nav-open .nav-links{display:grid}
   .nav-link{
-    min-height:37px;
-    padding:7px 6px;
-    font-size:11px;
+    min-height:42px;
+    padding:9px 8px;
+    font-size:12px;
     line-height:1.15;
     white-space:normal;
     text-align:center;
@@ -225,7 +241,6 @@
   .panel-head .toolbar{grid-template-columns:1fr}
   .head-actions{grid-template-columns:1fr}
   #cycle-select,#week-select{grid-column:auto}
-  .nav-links{grid-template-columns:repeat(2,minmax(0,1fr))}
   .responsive-table tbody{padding:8px}
   .responsive-table tbody tr{padding:9px}
 }

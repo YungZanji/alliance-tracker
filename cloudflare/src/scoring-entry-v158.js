@@ -342,7 +342,7 @@ function extractPlanMetadata(html) {
 
 function injectViewer(html, viewer) {
   const safeViewer = scriptJson(viewer);
-  const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+  const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com; script-src 'unsafe-inline'; font-src data: https://fonts.gstatic.com; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
   const bootstrap = `<script>
 (() => {
   const viewer = ${safeViewer};
@@ -451,7 +451,7 @@ function htmlResponse(value, status = 200) {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'private, no-store, max-age=0',
       'x-content-type-options': 'nosniff',
-      'content-security-policy': "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+      'content-security-policy': "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline' https://fonts.googleapis.com; script-src 'unsafe-inline'; font-src data: https://fonts.gstatic.com; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
     }
   });
 }
