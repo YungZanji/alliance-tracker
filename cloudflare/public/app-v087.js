@@ -1,6 +1,6 @@
 import './app-v086.js?v=117';
 
-const PLAN_VERSION = '118';
+const MAX_PLAN_BYTES = 1_900_000;
 let scheduled = false;
 let busy = false;
 let mode = sessionStorage.getItem('glory-war-view') || 'plan';
@@ -66,7 +66,7 @@ function paintPlan(main, data) {
     ${tabs('plan')}
     ${active ? `
       <section class="glory-plan-summary">
-        <div class="glory-plan-status badge badge-${viewerTone}">${esc(viewer.status === 'assigned' ? viewer.message : 'Attendance unknown')}</div>
+        <div class="glory-plan-status badge badge-${viewerTone}">${esc(viewer.message || (viewer.status === 'assigned' ? 'Position assigned' : 'Attendance unknown'))}</div>
         <div class="glory-plan-meta">
           <span>${fmt(active.placementCount)} deployed</span>
           <span>${fmt(active.rosterCount)} roster records</span>
