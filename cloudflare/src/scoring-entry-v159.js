@@ -22,7 +22,12 @@ export default {
       return handleCanyonImage(request, env, ctx);
     }
     if (url.pathname === '/api/admin/canyon-plan/image' && request.method === 'POST') {
-      return handleCanyonUpload(request, env, ctx);
+      try {
+        return await handleCanyonUpload(request, env, ctx);
+      } catch (error) {
+        console.error('Canyon Clash image upload failed', error);
+        return json({ ok: false, error: 'Canyon Clash image upload failed on the server.' }, 500);
+      }
     }
 
     return portal.fetch(request, env, ctx);
@@ -105,15 +110,42 @@ async function handleCanyonUpload(request, env, ctx) {
   if (auth.response) return auth.response;
   if (!auth.user.isAdmin) return json({ ok: false, error: 'Administrator access required.' }, 403);
 
-  const language = normalizeLanguage(request.headers.get('x-canyon-language'));
-  if (!language) return json({ ok: false, error: 'Choose a supported Canyon Clash language.' }, 400);
+  const contentType = String(request.headers.get('content-type') || '').toLowerCase();
+  let language = '';
+  let mimeType = '';
+  let filename = '';
+  let buffer;
 
-  const mimeType = String(request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (contentType.startsWith('multipart/form-data')) {
+    let form;
+    try {
+      form = await request.formData();
+    } catch (_) {
+      return json({ ok: false, error: 'Could not read the selected image upload.' }, 400);
+    }
+
+    language = normalizeLanguage(form.get('language'));
+    const image = form.get('image');
+    if (!language) return json({ ok: false, error: 'Choose a supported Canyon Clash language.' }, 400);
+    if (!image || typeof image.arrayBuffer !== 'function') {
+      return json({ ok: false, error: 'Choose an image to upload.' }, 400);
+    }
+
+    mimeType = String(image.type || '').split(';')[0].trim().toLowerCase();
+    filename = safeFilename(image.name);
+    buffer = await image.arrayBuffer();
+  } else {
+    language = normalizeLanguage(request.headers.get('x-canyon-language'));
+    if (!language) return json({ ok: false, error: 'Choose a supported Canyon Clash language.' }, 400);
+    mimeType = contentType.split(';')[0].trim();
+    filename = safeFilename(request.headers.get('x-file-name'));
+    buffer = await request.arrayBuffer();
+  }
+
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
     return json({ ok: false, error: 'Upload a JPG, PNG, or WebP image.' }, 415);
   }
 
-  const buffer = await request.arrayBuffer();
   const byteSize = buffer.byteLength;
   if (!byteSize) return json({ ok: false, error: 'Choose an image to upload.' }, 400);
   if (byteSize > MAX_CANYON_IMAGE_BYTES) {
@@ -122,7 +154,7 @@ async function handleCanyonUpload(request, env, ctx) {
 
   const languageRow = CANYON_LANGUAGE_MAP[language];
   const now = new Date().toISOString();
-  const filename = safeFilename(request.headers.get('x-file-name')) || `canyon-clash-${language}.${extensionFor(mimeType)}`;
+  filename = filename || `canyon-clash-${language}.${extensionFor(mimeType)}`;
   const imageBase64 = bytesToBase64(new Uint8Array(buffer));
 
   await env.DB.prepare(`
