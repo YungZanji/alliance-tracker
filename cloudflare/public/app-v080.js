@@ -1,7 +1,7 @@
 import './app-v078.js';
 
 let scheduled=false,leaderBusy=false,adminBusy=false,guideBusy=false,countdownTimer=null;
-const navOrder=['Home','Alliance Leaderboards','Alliance Duel','State Ruler','Glory War','Guide','Polls','Activity','Admin'];
+const navOrder=['Home','Alliance Leaderboards','Alliance Duel','State Ruler','Glory War','Canyon Clash','Guide','Polls','Activity','Admin'];
 const observer=new MutationObserver(schedule);
 observer.observe(document.getElementById('app'),{childList:true,subtree:true});
 window.addEventListener('hashchange',()=>{clearInterval(countdownTimer);countdownTimer=null;schedule();});
