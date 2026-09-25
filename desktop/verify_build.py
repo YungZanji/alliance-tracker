@@ -121,6 +121,7 @@ for marker in (
     assert marker in glory_runtime
 for marker in (
     "Glory War Capture",
+    "Logs → View",
     "SAVED DISCOVERY IMPORT",
     "IMPORT & SYNC SELECTED",
     "find_glory_war_sessions",
@@ -130,6 +131,10 @@ for marker in (
 for marker in (
     "Glory War Score Capture",
     "alliance.declare.war.personal.rank",
+    "domain.al.war.member.score.his",
+    "domain.al.his",
+    '"logs_history"',
+    "historicalMatchDetected",
     'dataset="glory_war_rankings"',
     '"primaryStateScore"',
     '"opponentStateScore"',
