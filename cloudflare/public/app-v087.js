@@ -15,6 +15,10 @@ if (DIRECT_GW_MAP) {
 const observer = new MutationObserver(schedule);
 observer.observe(document.getElementById('app'), { childList: true, subtree: true });
 window.addEventListener('hashchange', schedule);
+window.addEventListener('popstate', schedule);
+window.addEventListener('alliance-route-change', event => {
+  if (event.detail?.route === 'glory-war') schedule();
+});
 schedule();
 
 function schedule() {
