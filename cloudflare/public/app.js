@@ -53,6 +53,7 @@ async function boot() {
 async function api(url, options = {}) {
   const response = await fetch(url, {
     ...options,
+    credentials: 'same-origin',
     headers: { 'content-type': 'application/json', ...(options.headers || {}) },
     cache: 'no-store'
   });
@@ -98,14 +99,33 @@ async function login(event) {
   event.preventDefault();
   const button = document.getElementById('login-button');
   const error = document.getElementById('login-error');
+  const uidInput = document.getElementById('uid');
+  const uid = String(uidInput?.value || '').replace(/[^0-9]/g, '');
+  if (uidInput) uidInput.value = uid;
   button.disabled = true;
   button.textContent = 'Signing in…';
   error.classList.remove('show');
   try {
-    const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ uid: document.getElementById('uid').value.trim() }) });
-    state.user = data.user;
+    await api('/api/auth/login', {
+      method: 'POST',
+      allow401: true,
+      body: JSON.stringify({ uid })
+    });
+
+    let verified;
+    try {
+      verified = await api('/api/auth/me', { allow401: true });
+    } catch (_) {
+      throw new Error('Your browser did not keep the sign-in session. Open this link in Safari or Chrome instead of an in-app browser, then try again.');
+    }
+    if (!verified?.user) {
+      throw new Error('Your browser did not keep the sign-in session. Open this link in Safari or Chrome instead of an in-app browser, then try again.');
+    }
+
+    state.user = verified.user;
     renderShell();
-    navigate('home');
+    const requestedRoute = location.hash.slice(1);
+    navigate(requestedRoute === 'glory-war' || location.pathname.replace(/\/+$/, '') === '/gw-map' ? 'glory-war' : 'home');
   } catch (err) {
     error.textContent = err.message;
     error.classList.add('show');
