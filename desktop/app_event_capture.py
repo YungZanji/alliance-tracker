@@ -13,7 +13,7 @@ from utils import SESSIONS_DIR
 
 
 class App(BaseApp):
-    """Current event-capture UI: live Glory War capture plus saved discovery import."""
+    """Current event-capture UI: live/log Glory War capture plus saved-session import."""
 
     def __init__(self) -> None:
         self.glory_import_sessions: dict[str, str] = {}
@@ -57,8 +57,8 @@ class App(BaseApp):
         ctk.CTkLabel(
             panel,
             text=(
-                "The tracker scans saved sessions for alliance.declare.war.personal.rank. "
-                "Select an older discovery, preview it through the normal Glory War decoder, then sync the derived archive without replaying the event."
+                "The tracker scans saved sessions for either the live Glory War ranking or the historical Logs score response. "
+                "Select an older capture and sync it through the same Glory War decoder without replaying the event."
             ),
             text_color=Colors.MUTED,
             font=(self.font, 9),
@@ -139,7 +139,7 @@ class App(BaseApp):
             self.glory_import_menu.set(labels[0])
             self.glory_import_button.configure(state="normal")
             self._set_glory_import_status(
-                f"Found {len(labels)} saved session(s) containing the Glory War personal ranking."
+                f"Found {len(labels)} saved session(s) containing Glory War score data."
             )
         else:
             placeholder = "No Glory War discovery sessions found"
@@ -147,7 +147,7 @@ class App(BaseApp):
             self.glory_import_menu.set(placeholder)
             self.glory_import_button.configure(state="disabled")
             self._set_glory_import_status(
-                "No saved session currently contains alliance.declare.war.personal.rank. Run Full Data Discovery or the normal Glory War Capture during/after the next event."
+                "No saved session currently contains a live Glory War ranking or historical Logs score response. Run Glory War Capture and open Personal Ranking or Logs → View."
             )
 
     @staticmethod

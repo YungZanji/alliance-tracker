@@ -63,12 +63,12 @@ class App(BaseApp):
         panel.pack(fill="x")
 
         ctk.CTkLabel(panel, text="GLORY WAR ARCHIVE", text_color=Colors.ACCENT, font=(self.font, 10, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
-        ctk.CTkLabel(panel, text="One post-war ranking capture", text_color=Colors.TEXT, font=(self.font, 18, "bold")).pack(anchor="w", padx=16)
+        ctk.CTkLabel(panel, text="Capture live results or a saved Glory War log", text_color=Colors.TEXT, font=(self.font, 18, "bold")).pack(anchor="w", padx=16)
         ctk.CTkLabel(
             panel,
             text=(
-                "Start capture, open Glory War and its Personal Ranking after the battle, then stop. "
-                "WDZ player scores are archived individually. Opponent player rows are used only to derive the opposing state/alliance totals and are not stored in the Glory War leaderboard."
+                "Start capture, then open either the post-war Glory War Personal Ranking or Glory War → Logs → View for an older battle. "
+                "The tracker recognizes both response formats automatically. WDZ player scores are archived individually; opponent player rows are used only to derive the matchup totals and are not stored in the Glory War leaderboard."
             ),
             text_color=Colors.MUTED,
             font=(self.font, 9),
@@ -82,8 +82,8 @@ class App(BaseApp):
             steps,
             text=(
                 "1. Start Glory War Capture\n"
-                "2. Open Glory War → Personal Ranking\n"
-                "3. Wait for the ranking to load\n"
+                "2. Open Personal Ranking, or Logs → View for an older battle\n"
+                "3. Wait for both score lists to load\n"
                 "4. Stop, Build & Sync"
             ),
             text_color=Colors.TEXT,
@@ -119,7 +119,7 @@ class App(BaseApp):
 
         self.glory_capture_status = ctk.CTkLabel(
             panel,
-            text="Ready. Capture the post-war Personal Ranking after the final scores are visible.",
+            text="Ready. Capture the post-war Personal Ranking, or open Logs → View to recover an older Glory War.",
             text_color=Colors.MUTED,
             font=(self.font, 9),
             wraplength=820,
@@ -205,7 +205,7 @@ class App(BaseApp):
 
         self.glory_start_button.configure(text="CAPTURING…")
         self.glory_stop_button.configure(state="normal")
-        self._set_glory_status("Recording. Open Glory War → Personal Ranking and let the final ranking load.", Colors.SUCCESS)
+        self._set_glory_status("Recording. Open Glory War → Personal Ranking, or Logs → View for the battle you want to archive.", Colors.SUCCESS)
 
     def stop_glory_capture(self) -> None:
         session_id = str(self.session_id or self.glory_capture_session_id or "")
