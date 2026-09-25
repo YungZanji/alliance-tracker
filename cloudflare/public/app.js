@@ -6,6 +6,8 @@ const state = {
   dashboard: null,
   participation: null,
   duel: null,
+  canyon: null,
+  canyonLanguage: 'en',
   admin: null,
   logins: [],
   route: 'home',
@@ -40,14 +42,21 @@ async function boot() {
     if (data?.user) {
       state.user = data.user;
       renderShell();
-      navigate(location.hash.slice(1) || 'home', false);
+      navigate(initialRoute(), false);
     } else {
       renderLogin();
     }
   } catch (_) {
     renderLogin();
   }
-  window.addEventListener('hashchange', () => state.user && navigate(location.hash.slice(1) || 'home', false));
+  window.addEventListener('hashchange', () => state.user && navigate(location.hash.slice(1) || initialRoute(), false));
+}
+
+function initialRoute() {
+  const path = location.pathname.replace(/\/+$/, '').toLowerCase();
+  if (path === '/canyon') return 'canyon';
+  if (path === '/gw-map') return 'glory-war';
+  return location.hash.slice(1) || 'home';
 }
 
 async function api(url, options = {}) {
@@ -125,7 +134,10 @@ async function login(event) {
     state.user = verified.user;
     renderShell();
     const requestedRoute = location.hash.slice(1);
-    navigate(requestedRoute === 'glory-war' || location.pathname.replace(/\/+$/, '') === '/gw-map' ? 'glory-war' : 'home');
+    const path = location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (path === '/canyon') navigate('canyon');
+    else if (requestedRoute === 'glory-war' || path === '/gw-map') navigate('glory-war');
+    else navigate('home');
   } catch (err) {
     error.textContent = err.message;
     error.classList.add('show');
@@ -149,6 +161,7 @@ function renderShell() {
             ${navButton('duel', 'Alliance Duel')}
             ${navButton('state-ruler', 'State Ruler')}
             ${navButton('glory-war', 'Glory War')}
+            ${navButton('canyon', 'Canyon Clash')}
             ${state.user.isAdmin ? navButton('admin', 'Admin') : ''}
           </div>
           <div class="nav-actions">
@@ -193,7 +206,7 @@ function navButton(route, label) {
 }
 
 function navigate(route, push = true) {
-  const allowed = ['home', 'leaderboards', 'duel', 'state-ruler', 'glory-war', 'admin'];
+  const allowed = ['home', 'leaderboards', 'duel', 'state-ruler', 'glory-war', 'canyon', 'admin'];
   if (!allowed.includes(route) || (route === 'admin' && !state.user?.isAdmin)) route = 'home';
   state.route = route;
   if (push && location.hash !== `#${route}`) history.pushState(null, '', `#${route}`);
@@ -205,7 +218,168 @@ function navigate(route, push = true) {
   if (route === 'duel') return renderDuelPage();
   if (route === 'state-ruler') return renderComing('State Ruler', 'State versus State participation', 'ruler');
   if (route === 'glory-war') return renderComing('Glory War', 'Glory War participation', 'glory');
+  if (route === 'canyon') return renderCanyon();
   if (route === 'admin') return renderAdmin();
+}
+
+
+const CANYON_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'th', label: 'ไทย · Thai' },
+  { code: 'es', label: 'Español' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'el', label: 'Ελληνικά' },
+  { code: 'bg', label: 'Български' }
+];
+const CANYON_MAX_IMAGE_BYTES = 1_300_000;
+
+async function renderCanyon() {
+  const main = document.getElementById('main');
+  try {
+    const data = await api('/api/canyon-plan');
+    state.canyon = data;
+
+    const available = (data.languages || []).filter(row => row.available);
+    if (!available.some(row => row.code === state.canyonLanguage)) {
+      state.canyonLanguage = data.defaultLanguage || available[0]?.code || 'en';
+    }
+
+    const selected = (data.languages || []).find(row => row.code === state.canyonLanguage);
+    main.innerHTML = `
+      ${pageHead('Canyon Clash', 'Battle plan reference · choose your language.', '<span class="badge badge-blue">Canyon Clash plan</span>')}
+      <section class="canyon-card">
+        <div class="canyon-toolbar">
+          <div class="canyon-language-tabs" role="tablist" aria-label="Plan language">
+            ${(data.languages || []).map(row => `<button type="button" class="canyon-language-button${row.code === state.canyonLanguage ? ' active' : ''}" data-canyon-lang="${esc(row.code)}" ${row.available ? '' : 'disabled'}>${esc(row.label)}</button>`).join('')}
+          </div>
+          <label class="canyon-language-select-wrap">
+            <span>Language</span>
+            <select class="select canyon-language-select" id="canyon-language-select">
+              ${(data.languages || []).map(row => `<option value="${esc(row.code)}" ${row.code === state.canyonLanguage ? 'selected' : ''} ${row.available ? '' : 'disabled'}>${esc(row.label)}${row.available ? '' : ' · not uploaded'}</option>`).join('')}
+            </select>
+          </label>
+          <div class="canyon-meta">${data.updatedAt ? `Updated ${esc(when(data.updatedAt))}` : 'Waiting for plan images'}</div>
+        </div>
+
+        <div class="canyon-viewer">
+          ${selected?.available ? `
+            <button type="button" class="canyon-image-button" id="canyon-image-button" aria-label="Open plan image full screen">
+              <img class="canyon-image" id="canyon-image" src="/api/canyon-plan/image?lang=${encodeURIComponent(state.canyonLanguage)}&v=${encodeURIComponent(selected.updatedAt || '')}" alt="Canyon Clash battle plan in ${esc(selected.label)}">
+            </button>
+            <div class="canyon-viewer-foot">
+              <span>${esc(selected.label)}</span>
+              <button class="btn btn-secondary" type="button" id="canyon-fullscreen-button">View full size</button>
+            </div>
+          ` : `<div class="canyon-empty"><strong>No Canyon Clash plan image is uploaded yet.</strong><span>${state.user?.isAdmin ? 'Use the administrator upload panel below.' : 'An administrator can add the plan here.'}</span></div>`}
+        </div>
+      </section>
+
+      ${state.user?.isAdmin ? canyonAdminPanel(data.languages || []) : ''}
+
+      <div class="canyon-lightbox hidden" id="canyon-lightbox" role="dialog" aria-modal="true" aria-label="Canyon Clash full-size plan">
+        <div class="canyon-lightbox-bar">
+          <strong>${esc(selected?.label || 'Canyon Clash')}</strong>
+          <button class="icon-btn" type="button" id="canyon-lightbox-close" aria-label="Close full-size image">×</button>
+        </div>
+        <div class="canyon-lightbox-scroll">
+          ${selected?.available ? `<img src="/api/canyon-plan/image?lang=${encodeURIComponent(state.canyonLanguage)}&v=${encodeURIComponent(selected.updatedAt || '')}" alt="Canyon Clash battle plan in ${esc(selected.label)}">` : ''}
+        </div>
+      </div>
+    `;
+
+    document.querySelectorAll('[data-canyon-lang]').forEach(button => button.addEventListener('click', () => {
+      state.canyonLanguage = button.dataset.canyonLang || 'en';
+      renderCanyon();
+    }));
+    document.getElementById('canyon-language-select')?.addEventListener('change', event => {
+      state.canyonLanguage = event.target.value || 'en';
+      renderCanyon();
+    });
+
+    const openLightbox = () => document.getElementById('canyon-lightbox')?.classList.remove('hidden');
+    document.getElementById('canyon-image-button')?.addEventListener('click', openLightbox);
+    document.getElementById('canyon-fullscreen-button')?.addEventListener('click', openLightbox);
+    document.getElementById('canyon-lightbox-close')?.addEventListener('click', () => document.getElementById('canyon-lightbox')?.classList.add('hidden'));
+    document.getElementById('canyon-lightbox')?.addEventListener('click', event => {
+      if (event.target?.id === 'canyon-lightbox') event.currentTarget.classList.add('hidden');
+    });
+
+    if (state.user?.isAdmin) {
+      document.getElementById('canyon-upload-all')?.addEventListener('click', uploadCanyonImages);
+    }
+  } catch (err) {
+    pageError(err);
+  }
+}
+
+function canyonAdminPanel(languages) {
+  return `
+    <section class="card canyon-admin">
+      <div class="canyon-admin-head">
+        <div>
+          <div class="eyebrow">ADMINISTRATOR</div>
+          <h2>Canyon Clash plan images</h2>
+          <p class="muted">Choose the matching image for each language, then upload them together. Existing languages are replaced in place.</p>
+        </div>
+        <button class="btn btn-primary" type="button" id="canyon-upload-all">Upload selected images</button>
+      </div>
+      <div class="canyon-upload-grid">
+        ${languages.map(row => `
+          <label class="canyon-upload-row">
+            <span><strong>${esc(row.label)}</strong><small>${row.available ? `Current: ${esc(row.filename || 'uploaded image')}` : 'Not uploaded'}</small></span>
+            <input class="input" type="file" accept="image/jpeg,image/png,image/webp" data-canyon-upload="${esc(row.code)}">
+          </label>
+        `).join('')}
+      </div>
+      <div class="canyon-upload-status muted" id="canyon-upload-status"></div>
+    </section>
+  `;
+}
+
+async function uploadCanyonImages() {
+  const button = document.getElementById('canyon-upload-all');
+  const status = document.getElementById('canyon-upload-status');
+  const inputs = [...document.querySelectorAll('[data-canyon-upload]')];
+  const selected = inputs.map(input => ({ input, file: input.files?.[0], code: input.dataset.canyonUpload })).filter(row => row.file);
+
+  if (!selected.length) {
+    if (status) status.textContent = 'Choose at least one language image first.';
+    return;
+  }
+
+  for (const row of selected) {
+    if (row.file.size > CANYON_MAX_IMAGE_BYTES) {
+      if (status) status.textContent = `${row.file.name} is too large. Maximum size is ${fmt(CANYON_MAX_IMAGE_BYTES)} bytes.`;
+      return;
+    }
+  }
+
+  if (button) button.disabled = true;
+  try {
+    let complete = 0;
+    for (const row of selected) {
+      const label = CANYON_LANGUAGES.find(language => language.code === row.code)?.label || row.code;
+      if (status) status.textContent = `Uploading ${label}…`;
+      await api('/api/admin/canyon-plan/image', {
+        method: 'POST',
+        headers: {
+          'content-type': row.file.type || 'image/jpeg',
+          'x-canyon-language': row.code,
+          'x-file-name': row.file.name
+        },
+        body: row.file
+      });
+      complete += 1;
+      if (status) status.textContent = `Uploaded ${complete} of ${selected.length}…`;
+    }
+    state.canyon = null;
+    showToast(`Uploaded ${selected.length} Canyon Clash image${selected.length === 1 ? '' : 's'}.`);
+    await renderCanyon();
+  } catch (err) {
+    if (status) status.textContent = err.message || String(err);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function ensureDashboard() {
