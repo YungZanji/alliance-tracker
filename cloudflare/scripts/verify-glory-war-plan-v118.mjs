@@ -16,6 +16,8 @@ assert.match(worker, /Attendance unknown/);
 assert.match(worker, /MAX_PLAN_BYTES = 1_900_000/);
 assert.match(worker, /Content-Security-Policy/);
 assert.match(worker, /connect-src 'none'/);
+assert.match(worker, /glory-war-map\.html/);
+assert.match(worker, /\/gw-map/);
 assert.match(migration, /CREATE TABLE IF NOT EXISTS glory_war_plans/);
 assert.match(migration, /WHERE is_active=1/);
 assert.match(ui, /Battle Plan/);
@@ -31,6 +33,7 @@ assert.match(css, /\.glory-plan-frame/);
 assert.match(index, /app-v087\.js\?v=118/);
 assert.match(index, /glory-war-plan-v118\.css\?v=118/);
 assert.match(wrangler, /scoring-entry-v158\.js/);
+assert.match(wrangler, /glory-war-map\.html/);
 assert.equal(fs.existsSync(new URL('../public/glory-war-map.html', import.meta.url)), false, 'Old public Glory War map must not remain directly accessible.');
 
 console.log('Verified authenticated Glory War plan hosting, personalized position jump, admin upload/history, and removal of the public static map.');
