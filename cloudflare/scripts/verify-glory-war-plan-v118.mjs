@@ -32,7 +32,7 @@ assert.match(archiveUi, /sessionStorage\.getItem\('glory-war-view'\) !== 'archiv
 assert.match(css, /\.glory-plan-frame/);
 assert.match(index, /app-v087\.js\?v=118/);
 assert.match(index, /glory-war-plan-v118\.css\?v=118/);
-assert.match(wrangler, /scoring-entry-v159\\.js/);
+assert.match(wrangler, /scoring-entry-v159\.js/);
 assert.match(wrangler, /glory-war-map\.html/);
 assert.equal(fs.existsSync(new URL('../public/glory-war-map.html', import.meta.url)), false, 'Old public Glory War map must not remain directly accessible.');
 
