@@ -143,7 +143,7 @@ function renderShell() {
           <button class="brand nav-link" data-route="home" style="padding:0;background:transparent">
             <span class="brand-mark">305</span><span class="brand-copy">WDZ Tracker<small>STATE 305</small></span>
           </button>
-          <div class="nav-links">
+          <div class="nav-links" id="primary-nav">
             ${navButton('home', 'Home')}
             ${navButton('leaderboards', 'Alliance Leaderboards')}
             ${navButton('duel', 'Alliance Duel')}
@@ -153,6 +153,9 @@ function renderShell() {
           </div>
           <div class="nav-actions">
             <span class="account-pill">${esc(state.user.name)}</span>
+            <button class="icon-btn mobile-nav-button" id="mobile-nav-button" aria-label="Open navigation" aria-controls="primary-nav" aria-expanded="false">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
             <button class="icon-btn" id="theme-button" aria-label="Toggle theme"></button>
             <button class="icon-btn" id="logout-button" aria-label="Log out"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg></button>
           </div>
@@ -161,7 +164,25 @@ function renderShell() {
       <main class="main" id="main"><div class="empty">Loading…</div></main>
       <footer class="main footer">WDZ Alliance Tracker · State 305 · Cloudflare D1</footer>
     </div>`;
-  document.querySelectorAll('[data-route]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.route)));
+  const nav = document.querySelector('.nav');
+  const mobileNavButton = document.getElementById('mobile-nav-button');
+  const closeMobileNav = () => {
+    nav?.classList.remove('mobile-nav-open');
+    if (mobileNavButton) {
+      mobileNavButton.setAttribute('aria-expanded', 'false');
+      mobileNavButton.setAttribute('aria-label', 'Open navigation');
+    }
+  };
+  document.querySelectorAll('[data-route]').forEach(button => button.addEventListener('click', () => {
+    closeMobileNav();
+    navigate(button.dataset.route);
+  }));
+  mobileNavButton?.addEventListener('click', () => {
+    const open = !nav?.classList.contains('mobile-nav-open');
+    nav?.classList.toggle('mobile-nav-open', open);
+    mobileNavButton.setAttribute('aria-expanded', String(open));
+    mobileNavButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+  });
   document.getElementById('theme-button').addEventListener('click', toggleTheme);
   document.getElementById('logout-button').addEventListener('click', logout);
   refreshThemeIcon();
