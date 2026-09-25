@@ -7,6 +7,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/glory-war-map.html') {
+      const target = new URL('/gw-map', url);
+      return Response.redirect(target.toString(), 301);
+    }
     if (url.pathname === '/api/glory-war-plan' && request.method === 'GET') {
       return handlePlanMeta(request, env, ctx);
     }
