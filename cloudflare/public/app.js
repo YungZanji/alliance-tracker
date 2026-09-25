@@ -242,7 +242,7 @@ const CANYON_LANGUAGES = [
   { code: 'el', label: 'Ελληνικά' },
   { code: 'bg', label: 'Български' }
 ];
-const CANYON_MAX_IMAGE_BYTES = 1_300_000;
+const CANYON_MAX_IMAGE_BYTES = 5_000_000;
 
 async function renderCanyon() {
   const main = document.getElementById('main');
@@ -362,7 +362,7 @@ async function uploadCanyonImages() {
 
   for (const row of selected) {
     if (row.file.size > CANYON_MAX_IMAGE_BYTES) {
-      const message = `${row.file.name} is too large. Maximum size is ${fmt(CANYON_MAX_IMAGE_BYTES)} bytes.`;
+      const message = `${row.file.name} is too large. Maximum size is ${(CANYON_MAX_IMAGE_BYTES / 1_000_000).toFixed(0)} MB.`;
       if (status) status.textContent = message;
       showToast(message);
       return;
