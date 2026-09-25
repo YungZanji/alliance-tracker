@@ -297,7 +297,7 @@ function extractPlanMetadata(html) {
   if (!/id=["']memberLookup["']/i.test(html) || !/id=["']jumpMember["']/i.test(html)) {
     throw new Error('This Glory War file is missing the member lookup / Jump to my position controls.');
   }
-  const match = html.match(/const\s+DATA=(\{[\s\S]*\}),P=DATA\.plan,/);
+  const match = html.match(/const\s+DATA\s*=\s*(\{[\s\S]*\})\s*,\s*P\s*=\s*DATA\.plan\s*,/);
   if (!match) throw new Error('Could not read the embedded Glory War plan data from this HTML file.');
 
   let data;
@@ -402,7 +402,7 @@ function injectViewer(html, viewer) {
 </script>`;
 
   let output = String(html || '');
-  if (/<\/head>/i.test(output)) output = output.replace(/<\/head>/i, `${csp}</head>`);
+  if (/<head[^>]*>/i.test(output)) output = output.replace(/<head[^>]*>/i, match => `${match}${csp}`);
   else output = csp + output;
   if (/<\/body>/i.test(output)) output = output.replace(/<\/body>/i, `${bootstrap}</body>`);
   else output += bootstrap;
