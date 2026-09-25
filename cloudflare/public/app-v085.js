@@ -27,6 +27,7 @@ async function api(url) {
 
 async function renderGloryWar(cycle = '', week = 0) {
   if (location.hash !== '#glory-war' || gloryBusy) return;
+  if (!cycle && sessionStorage.getItem('glory-war-view') !== 'archive') return;
   const main = document.getElementById('main');
   if (!main) return;
   const title = main.querySelector('.page-head h1')?.textContent?.trim() || '';
