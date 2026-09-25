@@ -61,10 +61,13 @@ function initialRoute() {
 }
 
 async function api(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (!isFormData && !headers.has('content-type')) headers.set('content-type', 'application/json');
   const response = await fetch(url, {
     ...options,
     credentials: 'same-origin',
-    headers: { 'content-type': 'application/json', ...(options.headers || {}) },
+    headers,
     cache: 'no-store'
   });
   let data = {};
@@ -339,7 +342,7 @@ function canyonAdminPanel(languages) {
           </label>
         `).join('')}
       </div>
-      <div class="canyon-upload-status muted" id="canyon-upload-status"></div>
+      <div class="canyon-upload-status muted" id="canyon-upload-status" role="status" aria-live="polite"></div>
     </section>
   `;
 }
@@ -351,42 +354,62 @@ async function uploadCanyonImages() {
   const selected = inputs.map(input => ({ input, file: input.files?.[0], code: input.dataset.canyonUpload })).filter(row => row.file);
 
   if (!selected.length) {
-    if (status) status.textContent = 'Choose at least one language image first.';
+    const message = 'Choose at least one language image first.';
+    if (status) status.textContent = message;
+    showToast(message);
     return;
   }
 
   for (const row of selected) {
     if (row.file.size > CANYON_MAX_IMAGE_BYTES) {
-      if (status) status.textContent = `${row.file.name} is too large. Maximum size is ${fmt(CANYON_MAX_IMAGE_BYTES)} bytes.`;
+      const message = `${row.file.name} is too large. Maximum size is ${fmt(CANYON_MAX_IMAGE_BYTES)} bytes.`;
+      if (status) status.textContent = message;
+      showToast(message);
       return;
     }
   }
 
+  const originalLabel = button?.textContent || 'Upload selected images';
   if (button) button.disabled = true;
   try {
     let complete = 0;
     for (const row of selected) {
       const label = CANYON_LANGUAGES.find(language => language.code === row.code)?.label || row.code;
-      if (status) status.textContent = `Uploading ${label}…`;
-      await api('/api/admin/canyon-plan/image', {
-        method: 'POST',
-        headers: {
-          'content-type': row.file.type || 'image/jpeg',
-          'x-canyon-language': row.code,
-          'x-file-name': row.file.name
-        },
-        body: row.file
-      });
+      const progress = `Uploading ${label} (${complete + 1}/${selected.length})…`;
+      if (status) status.textContent = progress;
+      if (button) button.textContent = `Uploading ${complete + 1}/${selected.length}…`;
+
+      const form = new FormData();
+      form.append('language', row.code);
+      form.append('image', row.file, row.file.name);
+
+      try {
+        await api('/api/admin/canyon-plan/image', {
+          method: 'POST',
+          body: form
+        });
+      } catch (err) {
+        throw new Error(`${label} upload failed: ${err.message || err}`);
+      }
+
       complete += 1;
-      if (status) status.textContent = `Uploaded ${complete} of ${selected.length}…`;
+      if (status) status.textContent = `Uploaded ${complete} of ${selected.length}.`;
     }
+
     state.canyon = null;
-    showToast(`Uploaded ${selected.length} Canyon Clash image${selected.length === 1 ? '' : 's'}.`);
+    const message = `Uploaded ${selected.length} Canyon Clash image${selected.length === 1 ? '' : 's'} successfully.`;
+    if (status) status.textContent = message;
+    showToast(message);
     await renderCanyon();
   } catch (err) {
-    if (status) status.textContent = err.message || String(err);
+    const message = err.message || String(err);
+    if (status) status.textContent = message;
+    showToast(message);
   } finally {
-    if (button) button.disabled = false;
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
   }
 }
 
