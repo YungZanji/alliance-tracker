@@ -209,7 +209,14 @@ function navigate(route, push = true) {
   const allowed = ['home', 'leaderboards', 'duel', 'state-ruler', 'glory-war', 'canyon', 'admin'];
   if (!allowed.includes(route) || (route === 'admin' && !state.user?.isAdmin)) route = 'home';
   state.route = route;
-  if (push && location.hash !== `#${route}`) history.pushState(null, '', `#${route}`);
+  if (push) {
+    const target = route === 'canyon'
+      ? '/canyon'
+      : route === 'home'
+        ? '/'
+        : `/#${route}`;
+    if (location.pathname + location.hash !== target) history.pushState(null, '', target);
+  }
   document.querySelectorAll('.nav-link[data-route]').forEach(button => button.classList.toggle('active', button.dataset.route === route));
   const main = document.getElementById('main');
   main.innerHTML = '<div class="empty">Loading…</div>';
