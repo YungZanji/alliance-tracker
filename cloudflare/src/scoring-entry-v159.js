@@ -1,6 +1,7 @@
 import portal from './scoring-entry-v158.js';
 
-const MAX_CANYON_IMAGE_BYTES = 1_300_000;
+const MAX_CANYON_IMAGE_BYTES = 5_000_000;
+const CANYON_CHUNK_BASE64_CHARS = 700_000;
 const CANYON_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'th', label: 'ไทย · Thai' },
@@ -94,7 +95,17 @@ async function handleCanyonImage(request, env, ctx) {
 
   if (!row) return json({ ok: false, error: 'That Canyon Clash language has not been uploaded yet.' }, 404);
 
-  const bytes = base64ToBytes(String(row.image_base64 || ''));
+  const chunkRows = await env.DB.prepare(`
+    SELECT chunk_base64
+    FROM canyon_plan_image_chunks
+    WHERE language_code=?
+    ORDER BY chunk_index ASC
+  `).bind(language).all();
+  const chunkBase64 = (chunkRows.results || []).map(item => String(item.chunk_base64 || '')).join('');
+  const imageBase64 = chunkBase64 || String(row.image_base64 || '');
+  if (!imageBase64) return json({ ok: false, error: 'This Canyon Clash image is missing its stored data.' }, 500);
+
+  const bytes = base64ToBytes(imageBase64);
   const headers = new Headers({
     'content-type': String(row.mime_type || 'image/jpeg'),
     'content-length': String(bytes.byteLength),
@@ -156,35 +167,52 @@ async function handleCanyonUpload(request, env, ctx) {
   const now = new Date().toISOString();
   filename = filename || `canyon-clash-${language}.${extensionFor(mimeType)}`;
   const imageBase64 = bytesToBase64(new Uint8Array(buffer));
+  const chunks = splitText(imageBase64, CANYON_CHUNK_BASE64_CHARS);
 
-  await env.DB.prepare(`
-    INSERT INTO canyon_plan_images(
-      language_code,language_label,mime_type,source_filename,image_base64,byte_size,
-      uploaded_by_uid,uploaded_by_name,uploaded_at,updated_at
-    ) VALUES(?,?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(language_code) DO UPDATE SET
-      language_label=excluded.language_label,
-      mime_type=excluded.mime_type,
-      source_filename=excluded.source_filename,
-      image_base64=excluded.image_base64,
-      byte_size=excluded.byte_size,
-      uploaded_by_uid=excluded.uploaded_by_uid,
-      uploaded_by_name=excluded.uploaded_by_name,
-      updated_at=excluded.updated_at
-  `).bind(
+  const statements = [
+    env.DB.prepare(`
+      INSERT INTO canyon_plan_images(
+        language_code,language_label,mime_type,source_filename,image_base64,byte_size,
+        uploaded_by_uid,uploaded_by_name,uploaded_at,updated_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(language_code) DO UPDATE SET
+        language_label=excluded.language_label,
+        mime_type=excluded.mime_type,
+        source_filename=excluded.source_filename,
+        image_base64=excluded.image_base64,
+        byte_size=excluded.byte_size,
+        uploaded_by_uid=excluded.uploaded_by_uid,
+        uploaded_by_name=excluded.uploaded_by_name,
+        updated_at=excluded.updated_at
+    `).bind(
+      language,
+      languageRow.label,
+      mimeType,
+      filename,
+      '',
+      byteSize,
+      auth.user.uid,
+      auth.user.name,
+      now,
+      now
+    ),
+    env.DB.prepare('DELETE FROM canyon_plan_image_chunks WHERE language_code=?').bind(language),
+    ...chunks.map((chunk, index) => env.DB.prepare(`
+      INSERT INTO canyon_plan_image_chunks(language_code,chunk_index,chunk_base64)
+      VALUES(?,?,?)
+    `).bind(language, index, chunk))
+  ];
+
+  await env.DB.batch(statements);
+
+  return json({
+    ok: true,
     language,
-    languageRow.label,
-    mimeType,
-    filename,
-    imageBase64,
+    label: languageRow.label,
     byteSize,
-    auth.user.uid,
-    auth.user.name,
-    now,
-    now
-  ).run();
-
-  return json({ ok: true, language, label: languageRow.label, byteSize, updatedAt: now });
+    chunks: chunks.length,
+    updatedAt: now
+  });
 }
 
 async function authenticatedPlayer(request, env, ctx) {
@@ -258,6 +286,12 @@ function bytesToBase64(bytes) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
+}
+
+function splitText(value, chunkSize) {
+  const chunks = [];
+  for (let i = 0; i < value.length; i += chunkSize) chunks.push(value.slice(i, i + chunkSize));
+  return chunks;
 }
 
 function base64ToBytes(value) {
