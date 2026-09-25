@@ -1,10 +1,16 @@
 import './app-v086.js?v=117';
 
 const MAX_PLAN_BYTES = 1_900_000;
+const DIRECT_GW_MAP = location.pathname.replace(/\/+$/, '') === '/gw-map';
 let scheduled = false;
 let busy = false;
-let mode = sessionStorage.getItem('glory-war-view') || 'plan';
+let mode = DIRECT_GW_MAP ? 'plan' : (sessionStorage.getItem('glory-war-view') || 'plan');
 let blobUrl = '';
+
+if (DIRECT_GW_MAP) {
+  sessionStorage.setItem('glory-war-view', 'plan');
+  if (location.hash !== '#glory-war') location.hash = '#glory-war';
+}
 
 const observer = new MutationObserver(schedule);
 observer.observe(document.getElementById('app'), { childList: true, subtree: true });
@@ -71,6 +77,7 @@ function paintPlan(main, data) {
           <span>${fmt(active.placementCount)} deployed</span>
           <span>${fmt(active.rosterCount)} roster records</span>
           <span>${active.state ? `State ${fmt(active.state)}` : 'State not specified'}</span>
+          ${active.planUpdatedAt ? `<span>Map updated ${esc(when(active.planUpdatedAt))}</span>` : ''}
           <span>Uploaded ${esc(when(active.uploadedAt))}</span>
         </div>
       </section>
@@ -292,7 +299,9 @@ function readError(value) {
 }
 
 function when(value) {
-  return value ? new Date(value).toLocaleString() : 'Unknown time';
+  if (!value) return 'Unknown time';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 function fmt(value) {
   return new Intl.NumberFormat().format(Number(value || 0));
