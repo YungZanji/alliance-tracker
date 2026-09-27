@@ -32,12 +32,12 @@ assert.equal(scored.eligibleEvents, 2);
 assert.equal(scored.playedEvents, 2);
 assert.equal(scored.leaveEvents, 1);
 assert.equal(scored.missedEvents, 0);
-assert.equal(scored.eventIndex, 125); // (200 + (100 × 0.5)) / 2
+assert.equal(scored.eventIndex, 125);
 
 const missed = scoreGloryWar(uid, matches, scores, policies, new Set(), noEvents, 1_000_000, 0.5);
 assert.equal(missed.eligibleEvents, 3);
 assert.equal(missed.missedEvents, 1);
-assert.equal(missed.eventIndex, 83.33); // (200 + 50 + 0) / 3
+assert.equal(missed.eventIndex, 83.33);
 
 const noEvent = scoreGloryWar(uid, matches, scores, policies, new Set(), new Set(['2026-08-30|4']), 1_000_000, 0.5);
 assert.equal(noEvent.eligibleEvents, 2);
@@ -54,6 +54,6 @@ assert.match(ui, /gloryWarBaseline/);
 assert.match(ui, /playedEvents/);
 assert.match(ui, /genuine missed completed event is zero/);
 assert.match(index, /app-v086\.js\?v=117/);
-assert.match(wrangler, /scoring-entry-v159\.js/);
+assert.match(wrangler, /scoring-entry-v160\.js/);
 
 console.log('Verified Glory War Contribution Index, 1M baseline, Bye/Leave/No Event handling, missed-event zero, Admin control, and active leaderboard display.');

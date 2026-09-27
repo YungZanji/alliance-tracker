@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const worker = fs.readFileSync(new URL('../src/scoring-entry-v160.js', import.meta.url), 'utf8');
+const migration = fs.readFileSync(new URL('../migrations/0029_admin_password_auth.sql', import.meta.url), 'utf8');
+const ui = fs.readFileSync(new URL('../public/admin-security-v123.js', import.meta.url), 'utf8');
+const css = fs.readFileSync(new URL('../public/admin-security-v123.css', import.meta.url), 'utf8');
+const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+const wrangler = fs.readFileSync(new URL('../wrangler.template.jsonc', import.meta.url), 'utf8');
+
+assert.match(worker, /\/api\/auth\/admin-login/);
+assert.match(worker, /\/api\/auth\/admin-password/);
+assert.match(worker, /\/api\/auth\/admin-logout/);
+assert.match(worker, /url\.pathname\.startsWith\('\/api\/admin\/'\)/);
+assert.match(worker, /requireAdminPassword/);
+assert.match(worker, /admin_sessions/);
+assert.match(worker, /admin_credentials/);
+assert.match(worker, /PBKDF2/);
+assert.match(worker, /SHA-256/);
+assert.match(worker, /ADMIN_PASSWORD_ITERATIONS = 210_000/);
+assert.match(worker, /ADMIN_LOGIN_ATTEMPT_LIMIT = 8/);
+assert.match(worker, /adminEligible/);
+assert.match(worker, /isAdmin,/);
+assert.match(worker, /sanitizeManageResponse/);
+assert.match(worker, /SameSite=Lax/);
+assert.match(migration, /CREATE TABLE IF NOT EXISTS admin_credentials/);
+assert.match(migration, /CREATE TABLE IF NOT EXISTS admin_sessions/);
+assert.match(migration, /CREATE TABLE IF NOT EXISTS admin_login_audit/);
+assert.doesNotMatch(migration, /YOq22TwEZsVmchlMfU3TrZcs/);
+assert.match(ui, /Unlock administrator access/);
+assert.match(ui, /Continue as member/);
+assert.match(ui, /\/api\/auth\/admin-login/);
+assert.match(ui, /\/api\/auth\/admin-password/);
+assert.match(ui, /data-weight-editor-v123|weightEditorV123/);
+assert.match(ui, /Draft total is/);
+assert.match(ui, /Your draft has been preserved/);
+assert.match(ui, /Reset to saved/);
+assert.match(css, /\.admin-unlock-backdrop/);
+assert.match(css, /\.stable-weight-editor/);
+assert.match(index, /admin-security-v123\.js\?v=123/);
+assert.match(index, /admin-security-v123\.css\?v=123/);
+assert.match(wrangler, /scoring-entry-v160\.js/);
+
+console.log('Verified UID-only member access, password-gated admin sessions, protected admin APIs, and stable editable contribution weights.');
