@@ -14,20 +14,23 @@ responsive_runtime = (ROOT / "app_v172_runtime.py").read_text(encoding="utf-8")
 tab_runtime = (ROOT / "app_v174_runtime.py").read_text(encoding="utf-8")
 tab_fix = (ROOT / "app_v174_runtime_fix.py").read_text(encoding="utf-8")
 power_runtime = (ROOT / "app_current.py").read_text(encoding="utf-8")
+direct_runtime = (ROOT / "app_direct_duel.py").read_text(encoding="utf-8")
+direct_helpers = (ROOT / "direct_duel.py").read_text(encoding="utf-8")
 roster_export = (ROOT / "roster_export.py").read_text(encoding="utf-8")
 spec = (ROOT / "AllianceTracker.spec").read_text(encoding="utf-8")
 capture = (ROOT / "capture.py").read_text(encoding="utf-8")
 agent_prelude = (ROOT / "agent" / "part-01.js").read_text(encoding="utf-8")
 agent_mode = (ROOT / "agent" / "part00a.js").read_text(encoding="utf-8")
 agent_rpc = (ROOT / "agent" / "part03.js").read_text(encoding="utf-8")
+direct_agent = (ROOT / "agent" / "part06_direct_duel.js").read_text(encoding="utf-8")
 resolver = (ROOT / "agent" / "part04g.js").read_text(encoding="utf-8")
 agent_parts = sorted((ROOT / "agent").glob("part*.js"))
 agent_source = "\n".join(path.read_text(encoding="utf-8") for path in agent_parts)
 
 assert "1.7.0" in startup
 assert "from app_v170_runtime import App" in startup
-assert "1.7.6" in entrypoint
-assert "from app_event_capture import App as CurrentApp" in entrypoint
+assert "1.7.7-direct-duel-lab" in entrypoint
+assert "from app_direct_duel import App as CurrentApp" in entrypoint
 assert "main.py" in spec
 
 for marker in (
@@ -146,6 +149,39 @@ for marker in (
 ):
     assert marker in glory_capture
 
+for marker in (
+    "DIRECT DUEL LAB · READ ONLY",
+    "FETCH PREVIOUS WEEK",
+    "FETCH CURRENT WEEK",
+    "queue_direct_duel_probe",
+    "first-time LuaEnv discovery can take up to ~100 seconds",
+    "Direct Duel probe completed and packaged",
+):
+    assert marker in direct_runtime
+for marker in (
+    '"get.alliance.duel.season.info"',
+    '"get.alliance.duel.group.info"',
+    '"al.battle.week.result.info"',
+    '"al.battle.rank.info"',
+    "probe_complete",
+    "summarize_response",
+):
+    assert marker in direct_helpers
+for marker in (
+    "DIRECT_DUEL_MODES",
+    "SFSNetwork.SendMessage",
+    "XLua.LuaEnv",
+    "LuaEnv.DoString",
+    "al.battle.rank.info",
+    "queueDirectDuelProbe",
+    "getDirectDuelStatus",
+    "type=3" if False else "previous",
+):
+    assert marker in direct_agent
+assert "item.mode" in direct_agent
+assert "row[1]" in direct_agent
+assert "arbitrary Lua" in direct_agent
+
 assert "capture_all_responses = False" in capture
 assert "set_discovery_capture" in capture
 assert "self.state.discovery_all or is_discovery_command(command)" in capture
@@ -163,6 +199,6 @@ assert "Full Data Discovery" in discovery_runtime
 assert "discovery-timeline.jsonl" in discovery_runtime
 
 print(
-    "Verified Glory War live/history capture, SVS opponent/participation capture, roster activity, workspace power, "
-    "dedicated tabs, discovery capture, and typed Duel replay."
+    "Verified Direct Duel read-only lab, Glory War live/history capture, SVS opponent/participation capture, "
+    "roster activity, workspace power, dedicated tabs, discovery capture, and typed Duel replay."
 )
