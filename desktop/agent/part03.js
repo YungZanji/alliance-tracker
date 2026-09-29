@@ -62,7 +62,12 @@ function installHooks() {
   if (xLuaManager) {
     for (const method of enumerateMethods(xLuaManager.klass, 'Update', 0)) {
       forMethodPointers(method, 'XLuaManager.Update', {
-        onEnter() { bump('XLuaManager.Update'); }
+        onEnter(args) {
+          if (typeof directDuelRememberManagerInstance === 'function') {
+            try { directDuelRememberManagerInstance(args[0]); } catch (_) {}
+          }
+          bump('XLuaManager.Update');
+        }
       });
     }
 
@@ -80,6 +85,9 @@ function installHooks() {
             : 'DispatchResponse.LuaTable';
           const count = bump(counterName);
           const command = readManagedString(args[1]);
+          if (typeof directDuelRememberManagerInstance === 'function') {
+            try { directDuelRememberManagerInstance(args[0]); } catch (_) {}
+          }
           if (!captureEnabled) return;
 
           if (typeof traceAutomationResponse === 'function') {
