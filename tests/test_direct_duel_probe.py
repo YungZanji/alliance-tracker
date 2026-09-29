@@ -9,7 +9,7 @@ DESKTOP = ROOT / "desktop"
 if str(DESKTOP) not in sys.path:
     sys.path.insert(0, str(DESKTOP))
 
-from direct_duel import expected_commands, probe_complete, summarize_response
+from direct_duel import expected_commands, probe_complete, summarize_response, validate_sync_summary
 
 
 def test_previous_probe_requires_context_and_one_rank_response() -> None:
@@ -37,6 +37,49 @@ def test_full_sync_requires_all_four_rank_views() -> None:
     assert expected["al.battle.week.result.info"] == 1
     assert expected["al.battle.rank.info"] == 4
     assert probe_complete("sync", Counter(expected))
+
+
+def test_sync_validation_requires_every_authoritative_dataset() -> None:
+    summary = {
+        "captureQuality": {
+            "rankTypesCaptured": [
+                "current_day_combined",
+                "weekly_combined",
+                "weekly_own_alliance",
+                "completed_days",
+            ],
+            "officialResultsCaptured": True,
+            "seasonCaptured": True,
+        }
+    }
+    valid, missing = validate_sync_summary(summary)
+    assert valid
+    assert missing == []
+
+    summary["captureQuality"]["rankTypesCaptured"].remove("weekly_combined")
+    valid, missing = validate_sync_summary(summary)
+    assert not valid
+    assert missing == ["weekly_combined"]
+
+
+def test_first_day_sync_does_not_require_completed_day_snapshot() -> None:
+    # On the first active Duel day, type 3 can validly return an empty rankInfo.
+    # The response itself is required by probe_complete, but the normalizer has
+    # no player rows to persist as a completed_days snapshot yet.
+    summary = {
+        "captureQuality": {
+            "rankTypesCaptured": [
+                "current_day_combined",
+                "weekly_combined",
+                "weekly_own_alliance",
+            ],
+            "officialResultsCaptured": True,
+            "seasonCaptured": True,
+        }
+    }
+    valid, missing = validate_sync_summary(summary)
+    assert valid
+    assert missing == []
 
 
 def test_explorer_tracks_bounded_request_counts() -> None:

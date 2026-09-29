@@ -10,13 +10,13 @@ from typing import Any
 from utils import CONFIG_PATH, utc_now
 
 
-CLIENT_VERSION = "1.7.6"
+CLIENT_VERSION = "1.8.2"
 # Cloudflare Browser Integrity Check can reject Python's default urllib signature.
 # Send a standards-shaped browser identity plus an explicit app header instead.
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/140.0.0.0 Safari/537.36 AllianceTracker/1.7.6"
+    "Chrome/140.0.0.0 Safari/537.36 AllianceTracker/1.8.2"
 )
 
 

@@ -9,6 +9,11 @@ DIRECT_DUEL_CONTEXT_COMMANDS = (
     "get.alliance.duel.group.info",
     "al.battle.week.result.info",
 )
+DIRECT_DUEL_REQUIRED_SYNC_RANK_LABELS = {
+    "current_day_combined",
+    "weekly_combined",
+    "weekly_own_alliance",
+}
 
 
 def expected_commands(mode: str) -> Counter[str]:
@@ -37,6 +42,29 @@ def expected_commands(mode: str) -> Counter[str]:
 def probe_complete(mode: str, observed: Counter[str]) -> bool:
     wanted = expected_commands(mode)
     return all(int(observed.get(command, 0)) >= count for command, count in wanted.items())
+
+
+def validate_sync_summary(summary: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Require the normalized data needed for a safe current-week cloud sync.
+
+    completed_days is intentionally optional because on the first active Duel day
+    the type-3 request legitimately returns an empty ranking, which the normalizer
+    does not persist as a snapshot. probe_complete() still requires the type-3
+    server response itself before this validation runs.
+    """
+    quality = summary.get("captureQuality") if isinstance(summary, dict) else None
+    quality = quality if isinstance(quality, dict) else {}
+    captured = {str(value) for value in (quality.get("rankTypesCaptured") or [])}
+    missing: list[str] = []
+
+    for label in sorted(DIRECT_DUEL_REQUIRED_SYNC_RANK_LABELS):
+        if label not in captured:
+            missing.append(label)
+    if not bool(quality.get("officialResultsCaptured")):
+        missing.append("official_daily_results")
+    if not bool(quality.get("seasonCaptured")):
+        missing.append("season_context")
+    return (not missing, missing)
 
 
 def _find_key(value: Any, key: str) -> Any:
