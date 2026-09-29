@@ -62,6 +62,26 @@ def test_sync_validation_requires_every_authoritative_dataset() -> None:
     assert missing == ["weekly_combined"]
 
 
+def test_first_day_sync_does_not_require_completed_day_snapshot() -> None:
+    # On the first active Duel day, type 3 can validly return an empty rankInfo.
+    # The response itself is required by probe_complete, but the normalizer has
+    # no player rows to persist as a completed_days snapshot yet.
+    summary = {
+        "captureQuality": {
+            "rankTypesCaptured": [
+                "current_day_combined",
+                "weekly_combined",
+                "weekly_own_alliance",
+            ],
+            "officialResultsCaptured": True,
+            "seasonCaptured": True,
+        }
+    }
+    valid, missing = validate_sync_summary(summary)
+    assert valid
+    assert missing == []
+
+
 def test_explorer_tracks_bounded_request_counts() -> None:
     expected = expected_commands("explore")
     assert expected["get.alliance.duel.season.info"] == 1
