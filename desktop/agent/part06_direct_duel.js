@@ -1,27 +1,22 @@
+// Direct Duel request bridge using the same main-thread SafeDoString route proven
+// by the Last Z Gambler research harness. This module deliberately exposes only a
+// small hard-coded set of read-only Alliance Duel requests. No arbitrary Lua
+// execution or command console is exposed in Alliance Tracker.
 
-// Experimental read-only Alliance Duel request bridge.
-//
-// This does NOT expose arbitrary Lua execution to the desktop UI. The only RPC
-// entrypoint below accepts a small named mode and builds a hard-coded whitelist of
-// read-only SFSNetwork.SendMessage calls that have already been observed in normal
-// game traffic. The Lua chunk itself is executed on XLuaManager.Update so it runs on
-// the game's main thread, matching the proven xLua execution pattern used by the
-// separate Last Z research harness.
-
-let directDuelHookInstalled = false;
 let directDuelManager = ptr(0);
+let directDuelSafeDoStringMethod = null;
 let directDuelLuaEnv = ptr(0);
-let directDuelDoString = null;
-let directDuelDoStringMethod = ptr(0);
+let directDuelDoStringMethod = null;
 let directDuelStringNew = null;
 let directDuelQueue = [];
 let directDuelNextRequestId = 1;
 let directDuelExecuted = 0;
 let directDuelFailed = 0;
 let directDuelLastError = '';
-let directDuelLastReadyEmit = 0;
+let directDuelExecutionRoute = '';
+let directDuelLastWaitingEmit = 0;
+let directDuelFieldApi = null;
 
-const DIRECT_DUEL_LUAENV_OFFSET = 0x20;
 const DIRECT_DUEL_MODES = new Set(['context', 'current', 'previous', 'both']);
 
 function directDuelEmit(kind, payload) {
@@ -34,161 +29,296 @@ function directDuelEmit(kind, payload) {
 
 function directDuelStatus() {
   return {
-    hookInstalled: directDuelHookInstalled,
+    sharedUpdateHook: true,
+    managerReady: !!directDuelManager && !directDuelManager.isNull(),
     manager: pstr(directDuelManager),
+    safeDoStringReady: !!directDuelSafeDoStringMethod,
+    luaEnvReady: !!directDuelLuaEnv && !directDuelLuaEnv.isNull(),
     luaEnv: pstr(directDuelLuaEnv),
-    invokerReady: !!directDuelDoString,
+    doStringReady: !!directDuelDoStringMethod,
+    executionRoute: directDuelExecutionRoute,
     queued: directDuelQueue.length,
     executed: directDuelExecuted,
     failed: directDuelFailed,
-    lastError: directDuelLastError,
-    luaEnvOffset: DIRECT_DUEL_LUAENV_OFFSET
+    lastError: directDuelLastError
   };
 }
 
-function directDuelResolveStringNew() {
-  if (directDuelStringNew || !gameAssembly) return !!directDuelStringNew;
+function directDuelRememberManagerInstance(obj) {
+  if (!obj || obj.isNull()) return;
+  if (!directDuelManager || directDuelManager.isNull()) {
+    directDuelManager = obj;
+    directDuelEmit('direct-duel-manager-ready', {
+      manager: pstr(obj),
+      source: 'existing XLuaManager.Update/DispatchResponse hook'
+    });
+  }
+}
+
+function directDuelFindXLuaManagerInstance() {
+  if (directDuelManager && !directDuelManager.isNull()) return directDuelManager;
   try {
-    const address = gameAssembly.getExportByName('il2cpp_string_new');
-    directDuelStringNew = new NativeFunction(address, 'pointer', ['pointer']);
-    return true;
+    const found = findClass('', 'XLuaManager');
+    if (!found) {
+      directDuelLastError = 'XLuaManager class was not found';
+      return ptr(0);
+    }
+    if (typeof automationGetResolverApi !== 'function' ||
+        typeof automationResolveResourcesFindAll !== 'function' ||
+        typeof automationManagedArrayPointers !== 'function') {
+      directDuelLastError = 'Unity Resources resolver is not ready';
+      return ptr(0);
+    }
+    const resolver = automationGetResolverApi();
+    if (!resolver) {
+      directDuelLastError = 'Managed resolver API is not ready';
+      return ptr(0);
+    }
+    const type = resolver.class_get_type(found.klass);
+    const typeObject = resolver.type_get_object(type);
+    const findAll = automationResolveResourcesFindAll();
+    const arrayObject = automationInvokeMethod(findAll, ptr(0), [typeObject]);
+    const instances = automationManagedArrayPointers(arrayObject, 20);
+    if (!instances.length) {
+      directDuelLastError = 'Resources.FindObjectsOfTypeAll found no XLuaManager instances';
+      return ptr(0);
+    }
+    directDuelRememberManagerInstance(instances[0]);
+    directDuelEmit('direct-duel-manager-sweep', {
+      instances: instances.length,
+      selected: pstr(instances[0])
+    });
+    return directDuelManager;
+  } catch (error) {
+    directDuelLastError = `XLuaManager instance sweep failed: ${error.stack || error}`;
+    return ptr(0);
+  }
+}
+
+function directDuelResolveStringNew() {
+  if (directDuelStringNew) return directDuelStringNew;
+  if (!gameAssembly) return null;
+  try {
+    directDuelStringNew = new NativeFunction(
+      gameAssembly.getExportByName('il2cpp_string_new'),
+      'pointer',
+      ['pointer']
+    );
+    return directDuelStringNew;
   } catch (error) {
     directDuelLastError = `il2cpp_string_new unavailable: ${error}`;
-    return false;
+    return null;
   }
-}
-
-function directDuelResolveDoString() {
-  if (directDuelDoString) return true;
-  if (!api || !directDuelResolveStringNew()) return false;
-
-  try {
-    const found = findClass('XLua', 'LuaEnv');
-    if (!found) {
-      directDuelLastError = 'XLua.LuaEnv class was not found';
-      return false;
-    }
-
-    const candidates = enumerateMethods(found.klass, 'DoString', 3);
-    const method = candidates.find(item => {
-      const types = item.paramTypes || [];
-      return types.length === 3 &&
-        String(types[0] || '').indexOf('System.String') >= 0 &&
-        String(types[1] || '').indexOf('System.String') >= 0;
-    }) || candidates[0];
-
-    if (!method || !method.primary || method.primary.isNull()) {
-      directDuelLastError = 'XLua.LuaEnv.DoString(string,string,env) was not found';
-      return false;
-    }
-
-    // IL2CPP instance-method ABI on the current x64 game build:
-    //   return DoString(this, chunk, chunkName, env, MethodInfo*)
-    // The research harness verified this raw-ABI route on the same Windows client.
-    directDuelDoStringMethod = method.method;
-    directDuelDoString = new NativeFunction(
-      method.primary,
-      'pointer',
-      ['pointer', 'pointer', 'pointer', 'pointer', 'pointer']
-    );
-    directDuelLastError = '';
-    directDuelEmit('direct-duel-invoker-ready', {
-      imageName: found.imageName,
-      signature: `${method.returnType} ${method.name}(${(method.paramTypes || []).join(', ')})`,
-      address: pstr(method.primary)
-    });
-    return true;
-  } catch (error) {
-    directDuelLastError = `DoString resolver failed: ${error.stack || error}`;
-    return false;
-  }
-}
-
-function directDuelObserveManager(manager) {
-  if (!manager || manager.isNull()) return;
-  directDuelManager = manager;
-
-  if (!directDuelLuaEnv || directDuelLuaEnv.isNull()) {
-    try {
-      const candidate = manager.add(DIRECT_DUEL_LUAENV_OFFSET).readPointer();
-      if (candidate && !candidate.isNull()) {
-        const className = objectClassName(candidate);
-        if (className === 'XLua.LuaEnv' || className.endsWith('.LuaEnv')) {
-          directDuelLuaEnv = candidate;
-          directDuelEmit('direct-duel-luaenv-ready', {
-            manager: pstr(manager),
-            luaEnv: pstr(candidate),
-            className,
-            fieldOffset: DIRECT_DUEL_LUAENV_OFFSET
-          });
-        } else {
-          directDuelLastError = `XLuaManager + 0x20 was ${className || '<unknown>'}, not XLua.LuaEnv`;
-        }
-      }
-    } catch (error) {
-      directDuelLastError = `LuaEnv field read failed: ${error}`;
-    }
-  }
-
-  directDuelResolveDoString();
 }
 
 function directDuelManagedString(value) {
-  if (!directDuelStringNew) throw new Error('il2cpp_string_new is not ready');
-  return directDuelStringNew(Memory.allocUtf8String(String(value || '')));
+  const stringNew = directDuelResolveStringNew();
+  if (!stringNew) throw new Error(directDuelLastError || 'il2cpp_string_new is not ready');
+  return stringNew(Memory.allocUtf8String(String(value || '')));
 }
 
-function directDuelExecute(item) {
-  if (!directDuelLuaEnv || directDuelLuaEnv.isNull()) throw new Error('XLua.LuaEnv is not ready');
-  if (!directDuelResolveDoString()) throw new Error(directDuelLastError || 'LuaEnv.DoString is not ready');
-
-  const chunk = directDuelManagedString(item.chunk);
-  const chunkName = directDuelManagedString(`alliance_tracker_${item.mode}_${item.requestId}`);
-  directDuelDoString(
-    directDuelLuaEnv,
-    chunk,
-    chunkName,
-    ptr(0),
-    directDuelDoStringMethod
-  );
-}
-
-function directDuelPump(manager) {
+function directDuelResolveSafeDoString() {
+  if (directDuelSafeDoStringMethod) return directDuelSafeDoStringMethod;
   try {
-    directDuelObserveManager(manager);
-    if (!directDuelQueue.length) {
-      const now = Date.now();
-      if (now - directDuelLastReadyEmit > 5000 && directDuelLuaEnv && !directDuelLuaEnv.isNull() && directDuelDoString) {
-        directDuelLastReadyEmit = now;
-        directDuelEmit('direct-duel-ready', directDuelStatus());
-      }
-      return;
+    const managerClass = findClass('', 'XLuaManager');
+    if (!managerClass) {
+      directDuelLastError = 'XLuaManager class was not found';
+      return null;
     }
+    const candidates = enumerateMethods(managerClass.klass, 'SafeDoString', null);
+    const chosen = candidates.find(method =>
+      method.paramCount === 1 &&
+      method.paramTypes.length === 1 &&
+      String(method.paramTypes[0] || '').indexOf('System.String') >= 0
+    );
+    if (!chosen) {
+      directDuelLastError = 'XLuaManager.SafeDoString(System.String) was not found';
+      return null;
+    }
+    directDuelSafeDoStringMethod = chosen;
+    directDuelEmit('direct-duel-invoker-ready', {
+      route: 'XLuaManager.SafeDoString',
+      signature: `${chosen.returnType} ${chosen.name}(${chosen.paramTypes.join(', ')})`,
+      address: pstr(chosen.primary)
+    });
+    return chosen;
+  } catch (error) {
+    directDuelLastError = `SafeDoString resolver failed: ${error.stack || error}`;
+    return null;
+  }
+}
 
-    if (!directDuelLuaEnv || directDuelLuaEnv.isNull() || !directDuelDoString) return;
+function directDuelBindFieldApi() {
+  if (directDuelFieldApi) return directDuelFieldApi;
+  try {
+    directDuelFieldApi = {
+      class_get_fields: new NativeFunction(
+        gameAssembly.getExportByName('il2cpp_class_get_fields'), 'pointer', ['pointer', 'pointer']
+      ),
+      field_get_flags: new NativeFunction(
+        gameAssembly.getExportByName('il2cpp_field_get_flags'), 'uint', ['pointer']
+      ),
+      field_get_type: new NativeFunction(
+        gameAssembly.getExportByName('il2cpp_field_get_type'), 'pointer', ['pointer']
+      ),
+      field_get_value: new NativeFunction(
+        gameAssembly.getExportByName('il2cpp_field_get_value'), 'void', ['pointer', 'pointer', 'pointer']
+      ),
+      field_get_offset: new NativeFunction(
+        gameAssembly.getExportByName('il2cpp_field_get_offset'), 'int', ['pointer']
+      )
+    };
+    return directDuelFieldApi;
+  } catch (error) {
+    directDuelLastError = `LuaEnv field API unavailable: ${error}`;
+    return null;
+  }
+}
 
-    const item = directDuelQueue.shift();
+function directDuelFindLuaEnvInstance() {
+  if (directDuelLuaEnv && !directDuelLuaEnv.isNull()) return directDuelLuaEnv;
+  if (!directDuelManager || directDuelManager.isNull()) directDuelFindXLuaManagerInstance();
+  if (!directDuelManager || directDuelManager.isNull()) return ptr(0);
+
+  const managerClass = findClass('', 'XLuaManager');
+  const fieldApi = directDuelBindFieldApi();
+  if (!managerClass || !fieldApi) return ptr(0);
+
+  const iter = Memory.alloc(Process.pointerSize);
+  iter.writePointer(ptr(0));
+  let field = ptr(0);
+  let luaEnvField = ptr(0);
+  while (!(field = fieldApi.class_get_fields(managerClass.klass, iter)).isNull()) {
+    const flags = fieldApi.field_get_flags(field);
+    if ((flags & 0x10) !== 0) continue;
+    let typeName = '';
+    try { typeName = readAnsi(api.type_get_name(fieldApi.field_get_type(field))); } catch (_) {}
+    if (typeName && typeName.indexOf('LuaEnv') >= 0) {
+      luaEnvField = field;
+      break;
+    }
+  }
+
+  if (!luaEnvField || luaEnvField.isNull()) {
+    directDuelLastError = 'No LuaEnv-typed instance field was found on XLuaManager';
+    return ptr(0);
+  }
+
+  const out = Memory.alloc(Process.pointerSize);
+  fieldApi.field_get_value(directDuelManager, luaEnvField, out);
+  const value = out.readPointer();
+  if (!value || value.isNull()) {
+    directDuelLastError = 'XLuaManager LuaEnv field was null';
+    return ptr(0);
+  }
+
+  directDuelLuaEnv = value;
+  let className = '';
+  let offset = -1;
+  try { className = objectClassName(value); } catch (_) {}
+  try { offset = fieldApi.field_get_offset(luaEnvField); } catch (_) {}
+  directDuelEmit('direct-duel-luaenv-ready', {
+    manager: pstr(directDuelManager),
+    luaEnv: pstr(value),
+    className,
+    fieldOffset: offset
+  });
+  return directDuelLuaEnv;
+}
+
+function directDuelResolveDoString() {
+  if (directDuelDoStringMethod) return directDuelDoStringMethod;
+  const luaEnv = directDuelFindLuaEnvInstance();
+  if (!luaEnv || luaEnv.isNull()) return null;
+  try {
+    const klass = api.object_get_class(luaEnv);
+    const candidates = enumerateMethods(klass, 'DoString', null);
+    const chosen = candidates.find(method =>
+      method.paramCount === 3 &&
+      method.paramTypes.length >= 1 &&
+      String(method.paramTypes[0] || '').indexOf('System.String') >= 0
+    ) || candidates.find(method =>
+      method.paramCount === 1 &&
+      method.paramTypes.length === 1 &&
+      String(method.paramTypes[0] || '').indexOf('System.String') >= 0
+    ) || candidates[0];
+
+    if (!chosen) {
+      directDuelLastError = 'XLua.LuaEnv.DoString was not found';
+      return null;
+    }
+    directDuelDoStringMethod = chosen;
+    directDuelEmit('direct-duel-invoker-ready', {
+      route: 'XLua.LuaEnv.DoString fallback',
+      signature: `${chosen.returnType} ${chosen.name}(${chosen.paramTypes.join(', ')})`,
+      address: pstr(chosen.primary)
+    });
+    return chosen;
+  } catch (error) {
+    directDuelLastError = `DoString resolver failed: ${error.stack || error}`;
+    return null;
+  }
+}
+
+function directDuelInvokeManaged(method, instance, args) {
+  if (typeof automationInvokeMethod === 'function') {
+    return automationInvokeMethod(method, instance, args);
+  }
+  const excp = Memory.alloc(Process.pointerSize);
+  excp.writePointer(ptr(0));
+  let argv = ptr(0);
+  if (args && args.length) {
+    argv = Memory.alloc(Process.pointerSize * args.length);
+    args.forEach((value, index) => argv.add(index * Process.pointerSize).writePointer(value));
+  }
+  const returned = api.runtime_invoke(method, instance || ptr(0), argv, excp);
+  const exc = excp.readPointer();
+  if (!exc.isNull()) throw new Error(`managed invocation raised ${pstr(exc)}`);
+  return returned;
+}
+
+function directDuelDoStringOnMainThread(chunk) {
+  if (!directDuelManager || directDuelManager.isNull()) directDuelFindXLuaManagerInstance();
+  if (!directDuelManager || directDuelManager.isNull()) {
+    return { ok: false, error: directDuelLastError || 'XLuaManager instance not found' };
+  }
+
+  const safeMethod = directDuelResolveSafeDoString();
+  if (safeMethod) {
     try {
-      directDuelExecute(item);
-      directDuelExecuted += 1;
+      directDuelInvokeManaged(
+        safeMethod.method,
+        directDuelManager,
+        [directDuelManagedString(chunk)]
+      );
+      directDuelExecutionRoute = 'XLuaManager.SafeDoString';
       directDuelLastError = '';
-      directDuelEmit('direct-duel-executed', {
-        requestId: item.requestId,
-        mode: item.mode,
-        commands: item.commands,
-        queuedRemaining: directDuelQueue.length
-      });
-    } catch (error) {
-      directDuelFailed += 1;
-      directDuelLastError = String(error.stack || error);
-      directDuelEmit('direct-duel-error', {
-        requestId: item.requestId,
-        mode: item.mode,
+      return { ok: true, route: directDuelExecutionRoute };
+    } catch (safeError) {
+      directDuelLastError = `SafeDoString failed: ${safeError.stack || safeError}`;
+      directDuelEmit('direct-duel-route-fallback', {
+        from: 'XLuaManager.SafeDoString',
         error: directDuelLastError
       });
     }
-  } catch (error) {
-    directDuelLastError = String(error.stack || error);
+  }
+
+  try {
+    const luaEnv = directDuelFindLuaEnvInstance();
+    const method = directDuelResolveDoString();
+    if (!luaEnv || luaEnv.isNull() || !method) {
+      return { ok: false, error: directDuelLastError || 'LuaEnv.DoString fallback unavailable' };
+    }
+    const args = [directDuelManagedString(chunk)];
+    if (method.paramCount >= 2) args.push(directDuelManagedString('AllianceTracker.DirectDuel'));
+    if (method.paramCount >= 3) args.push(ptr(0));
+    directDuelInvokeManaged(method.method, luaEnv, args);
+    directDuelExecutionRoute = 'XLua.LuaEnv.DoString';
+    directDuelLastError = '';
+    return { ok: true, route: directDuelExecutionRoute };
+  } catch (fallbackError) {
+    directDuelLastError = `LuaEnv.DoString failed: ${fallbackError.stack || fallbackError}`;
+    return { ok: false, error: directDuelLastError };
   }
 }
 
@@ -227,14 +357,16 @@ function directDuelQueueProbe(mode) {
     requestId: directDuelNextRequestId++,
     mode: String(mode || 'previous').toLowerCase(),
     commands: built.commands,
-    chunk: built.chunk
+    chunk: built.chunk,
+    tries: 0
   };
   directDuelQueue.push(item);
   directDuelEmit('direct-duel-queued', {
     requestId: item.requestId,
     mode: item.mode,
     commands: item.commands,
-    queueDepth: directDuelQueue.length
+    queueDepth: directDuelQueue.length,
+    status: directDuelStatus()
   });
   return {
     ok: true,
@@ -245,33 +377,63 @@ function directDuelQueueProbe(mode) {
   };
 }
 
-function installDirectDuelHook() {
-  if (directDuelHookInstalled || !api) return false;
-  try {
-    const found = findClass('', 'XLuaManager');
-    if (!found) return false;
-    let hooks = 0;
-    for (const method of enumerateMethods(found.klass, 'Update', 0)) {
-      forMethodPointers(method, 'DirectDuel.XLuaManager.Update', {
-        onEnter(args) {
-          directDuelPump(args[0]);
-        }
+function directDuelProcessQueue() {
+  if (!directDuelQueue.length) return;
+  const item = directDuelQueue.shift();
+
+  if (!directDuelManager || directDuelManager.isNull()) directDuelFindXLuaManagerInstance();
+  if ((!directDuelManager || directDuelManager.isNull()) && item.tries < 900) {
+    item.tries += 1;
+    directDuelQueue.unshift(item);
+    const now = Date.now();
+    if (now - directDuelLastWaitingEmit > 5000) {
+      directDuelLastWaitingEmit = now;
+      directDuelEmit('direct-duel-waiting', {
+        stage: 'manager',
+        tries: item.tries,
+        queueDepth: directDuelQueue.length,
+        status: directDuelStatus()
       });
-      hooks += 1;
     }
-    directDuelHookInstalled = hooks > 0;
-    if (directDuelHookInstalled) {
-      directDuelEmit('direct-duel-hook-ready', { hooks, imageName: found.imageName });
-    }
-    return directDuelHookInstalled;
-  } catch (error) {
-    directDuelLastError = `Direct Duel hook installation failed: ${error.stack || error}`;
-    return false;
+    return;
+  }
+
+  const result = directDuelDoStringOnMainThread(item.chunk);
+  if (result.ok) {
+    directDuelExecuted += 1;
+    directDuelLastError = '';
+    directDuelEmit('direct-duel-executed', {
+      requestId: item.requestId,
+      mode: item.mode,
+      commands: item.commands,
+      route: result.route,
+      queuedRemaining: directDuelQueue.length,
+      status: directDuelStatus()
+    });
+  } else {
+    directDuelFailed += 1;
+    directDuelLastError = result.error || 'unknown Direct Duel execution error';
+    directDuelEmit('direct-duel-error', {
+      requestId: item.requestId,
+      mode: item.mode,
+      error: directDuelLastError,
+      status: directDuelStatus()
+    });
   }
 }
 
-// part03 establishes rpc.exports. This part sorts after it, so extend that object
-// rather than replacing any of the production capture exports.
+// Mirror the proven Last Z Gambler design: piggyback on the already-installed
+// automation main-thread replay pump rather than attaching a second interceptor at
+// XLuaManager.Update. The previous prototype used forMethodPointers() here, but that
+// address had already been claimed by part03 and was deduplicated, so its pump never
+// ran. This wrapper executes Direct Duel work in the same known-good main-thread
+// callback as Sequence Studio replay.
+const directDuelOriginalProcessReplayQueue = automationProcessReplayQueue;
+automationProcessReplayQueue = function () {
+  directDuelOriginalProcessReplayQueue();
+  directDuelProcessQueue();
+};
+
 rpc.exports.queueDirectDuelProbe = function (mode) {
   return directDuelQueueProbe(mode || 'previous');
 };
@@ -280,10 +442,8 @@ rpc.exports.getDirectDuelStatus = function () {
 };
 
 setImmediate(function () {
-  try { installDirectDuelHook(); } catch (_) {}
+  directDuelEmit('direct-duel-hook-ready', {
+    sharedUpdateHook: true,
+    message: 'Direct Duel is integrated with the existing automation main-thread Update pump.'
+  });
 });
-setInterval(function () {
-  if (!directDuelHookInstalled) {
-    try { installDirectDuelHook(); } catch (_) {}
-  }
-}, 1000);
