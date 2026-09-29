@@ -1,7 +1,7 @@
 // Direct Duel request bridge using the same main-thread SafeDoString route proven
 // by the Last Z Gambler research harness. This module deliberately exposes only a
-// small hard-coded set of read-only Alliance Duel requests; there is no arbitrary
-// Lua/command console in Alliance Tracker.
+// small hard-coded set of read-only Alliance Duel requests. No arbitrary Lua
+// execution or command console is exposed in Alliance Tracker.
 
 let directDuelManager = ptr(0);
 let directDuelSafeDoStringMethod = null;
