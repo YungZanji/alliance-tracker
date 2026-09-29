@@ -69,7 +69,8 @@ async function applyStableDuelRanks(table) {
   const key = `${cycle}|${week}|${metric}`;
   const cached = duelRankCache.get(key);
   if (cached) {
-    paintStableRanks(table, cached);
+    paintStableRanks(table, cached.rankMap);
+    paintDuelContext(cached.matchup);
     return;
   }
 
@@ -89,8 +90,21 @@ async function applyStableDuelRanks(table) {
       || String(a.name || '').localeCompare(String(b.name || ''))
     );
 
-    const rankMap = new Map(ranked.map((row, index) => [String(row.publicId), index + 1]));
-    duelRankCache.set(key, rankMap);
+    const dayIndex = metric === 'weekly' ? -1 : Number(metric.slice(3)) - 1;
+    const rankMap = new Map(ranked.map((row, index) => {
+      const fallbackAllianceRank = index + 1;
+      const allianceRank = metric === 'weekly'
+        ? Number(row.weeklyAlliancePosition || row.weeklyPosition || fallbackAllianceRank)
+        : Number(row.dayAlliancePositions?.[dayIndex] || fallbackAllianceRank);
+      const overallRank = metric === 'weekly'
+        ? Number(row.weeklyOverallPosition || 0)
+        : Number(row.dayOverallPositions?.[dayIndex] || 0);
+      return [String(row.publicId), { allianceRank, overallRank }];
+    }));
+
+    const cacheValue = { rankMap, matchup: data.matchup || null };
+    duelRankCache.set(key, cacheValue);
+    paintDuelContext(data.matchup || null);
 
     const currentKey = `${document.getElementById('cycle-select')?.value || ''}|${Number(document.getElementById('week-select')?.value || 1)}|${document.getElementById('duel-metric')?.value || 'weekly'}`;
     if (currentKey === key) {
@@ -107,9 +121,42 @@ function paintStableRanks(table, rankMap) {
   table.querySelectorAll('tbody tr[data-player]').forEach(row => {
     const rank = rankMap.get(String(row.dataset.player));
     const cell = row.querySelector('.rank-cell');
-    if (!cell || !rank) return;
-    const label = `#${rank}`;
-    if (cell.textContent.trim() !== label) cell.textContent = label;
-    cell.dataset.stableRank = String(rank);
+    if (!cell || !rank?.allianceRank) return;
+
+    const allianceLabel = `#${rank.allianceRank}`;
+    const overallLabel = rank.overallRank ? `Overall #${rank.overallRank}` : '';
+    cell.innerHTML = `<strong>${allianceLabel}</strong>${overallLabel ? `<small class="muted">${overallLabel}</small>` : ''}`;
+    cell.dataset.stableRank = String(rank.allianceRank);
+    if (rank.overallRank) cell.dataset.overallRank = String(rank.overallRank);
+    else delete cell.dataset.overallRank;
+    cell.title = overallLabel
+      ? `WDZ rank ${allianceLabel} · ${overallLabel}`
+      : `WDZ rank ${allianceLabel}`;
   });
+}
+
+function paintDuelContext(matchup) {
+  const host = document.getElementById('duel-content');
+  if (!host) return;
+  host.querySelector('.duel-live-context')?.remove();
+  if (!matchup?.opponent?.abbr) return;
+
+  const primary = matchup.primary || {};
+  const opponent = matchup.opponent || {};
+  const primaryLabel = [primary.abbr || 'WDZ', primary.name].filter(Boolean).join(' · ');
+  const opponentLabel = [opponent.abbr, opponent.name].filter(Boolean).join(' · ');
+  const state = opponent.serverId ? `State ${Number(opponent.serverId)}` : 'State unknown';
+  const group = matchup.duelGroup ? `Duel group ${matchup.duelGroup}` : 'Duel group unknown';
+  const captured = matchup.capturedAt ? `Synced ${new Date(matchup.capturedAt).toLocaleString()}` : 'Synced matchup';
+
+  const panel = document.createElement('section');
+  panel.className = 'method-box duel-live-context';
+  panel.innerHTML = `<strong>${escapeHtml(primaryLabel)} vs ${escapeHtml(opponentLabel)}</strong><span class="muted">${escapeHtml(state)} · ${escapeHtml(group)} · ${escapeHtml(captured)}</span>`;
+  host.insertAdjacentElement('afterbegin', panel);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  })[char]);
 }
