@@ -56,6 +56,7 @@ class AllianceDuelNormalizer:
     RANKING_COMMAND = "al.battle.rank.info"
     RESULTS_COMMAND = "al.battle.week.result.info"
     SEASON_COMMAND = "get.alliance.duel.season.info"
+    GROUP_COMMAND = "get.alliance.duel.group.info"
 
     LABELS = {
         0: "current_day_combined",
@@ -76,6 +77,8 @@ class AllianceDuelNormalizer:
             return cls._rankings(payload, captured_at, sequence)
         if command == cls.RESULTS_COMMAND:
             return cls._results(payload, captured_at, sequence)
+        if command == cls.GROUP_COMMAND:
+            return cls._group(payload, captured_at, sequence)
         if command == cls.SEASON_COMMAND:
             return [
                 Snapshot(
@@ -105,15 +108,29 @@ class AllianceDuelNormalizer:
         rows: list[dict[str, Any]] = []
         counts: dict[str, int] = {}
         totals: dict[str, int] = {}
+        group_positions: dict[int, int] = {}
+        alliance_positions: dict[tuple[int, str], int] = {}
 
-        for position, (group, source) in enumerate(source_rows, 1):
+        for group, source in source_rows:
+            group_key = -1 if group is None else int(group)
+            group_positions[group_key] = group_positions.get(group_key, 0) + 1
+            position = group_positions[group_key]
+
             abbr = str(source.get("abbr") or "")
+            alliance_key = (group_key, abbr)
+            alliance_positions[alliance_key] = alliance_positions.get(alliance_key, 0) + 1
+            alliance_position = alliance_positions[alliance_key]
+
             score = integer(source.get("score"))
             counts[abbr] = counts.get(abbr, 0) + 1
             totals[abbr] = totals.get(abbr, 0) + score
             rows.append(
                 {
+                    # position is retained for backwards compatibility. For nested
+                    # completed-day responses it now correctly resets per day.
                     "position": position,
+                    "overallPosition": position,
+                    "alliancePosition": alliance_position,
                     "dayIndex": None if group is None else group + 1,
                     "uid": str(source.get("uid") or ""),
                     "name": str(source.get("name") or ""),
@@ -139,6 +156,57 @@ class AllianceDuelNormalizer:
             Snapshot(
                 "alliance_duel_rankings",
                 cls.RANKING_COMMAND,
+                captured_at,
+                context,
+                rows,
+                sequence,
+                json_hash(payload),
+            )
+        ]
+
+    @classmethod
+    def _group(
+        cls, payload: Any, captured_at: str, sequence: int | None
+    ) -> list[Snapshot]:
+        if not isinstance(payload, dict) or not isinstance(payload.get("groupInfos"), list):
+            return []
+
+        rows: list[dict[str, Any]] = []
+        groups: set[str] = set()
+        for source in payload["groupInfos"]:
+            if not isinstance(source, dict):
+                continue
+            group = str(source.get("group") or "")
+            if group:
+                groups.add(group)
+            rows.append(
+                {
+                    "allianceId": str(source.get("allianceId") or ""),
+                    "allianceAbbr": str(source.get("abbr") or ""),
+                    "allianceName": str(source.get("name") or ""),
+                    "serverId": source.get("serverId"),
+                    "group": group,
+                    "position": integer(source.get("position")),
+                    "rankType": integer(source.get("rankType")),
+                    "roundResult": str(source.get("roundResult") or ""),
+                    "icon": str(source.get("icon") or ""),
+                    "wearFlagItem": integer(source.get("wearFlagItem")),
+                    "fake": integer(source.get("fake")),
+                }
+            )
+
+        if not rows:
+            return []
+        context = {
+            "duelGroup": next(iter(groups)) if len(groups) == 1 else "",
+            "groupCount": len(rows),
+            "messageId": payload.get("_id"),
+            "messageTime": payload.get("_time"),
+        }
+        return [
+            Snapshot(
+                "alliance_duel_group",
+                cls.GROUP_COMMAND,
                 captured_at,
                 context,
                 rows,

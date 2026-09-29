@@ -1,6 +1,7 @@
 import './app-v061.js';
 
 const DUEL_DAILY_TARGET = 6_000_000;
+const DUEL_RANK_CACHE_MS = 5_000;
 const duelRankCache = new Map();
 let scheduled = false;
 
@@ -68,12 +69,14 @@ async function applyStableDuelRanks(table) {
 
   const key = `${cycle}|${week}|${metric}`;
   const cached = duelRankCache.get(key);
-  if (cached) {
-    paintStableRanks(table, cached);
+  if (cached && Date.now() - Number(cached.fetchedAt || 0) < DUEL_RANK_CACHE_MS) {
+    paintStableRanks(table, cached.rankMap);
+    paintDuelContext(cached.matchup);
     return;
   }
 
-  duelRankCache.set(key, null);
+  if (cached?.loading) return;
+  duelRankCache.set(key, { ...(cached || {}), loading: true, fetchedAt: Number(cached?.fetchedAt || 0) });
   try {
     const response = await fetch(`/api/duel?cycle=${encodeURIComponent(cycle)}&week=${week}`, { cache: 'no-store' });
     const data = await response.json();
@@ -89,8 +92,21 @@ async function applyStableDuelRanks(table) {
       || String(a.name || '').localeCompare(String(b.name || ''))
     );
 
-    const rankMap = new Map(ranked.map((row, index) => [String(row.publicId), index + 1]));
-    duelRankCache.set(key, rankMap);
+    const dayIndex = metric === 'weekly' ? -1 : Number(metric.slice(3)) - 1;
+    const rankMap = new Map(ranked.map((row, index) => {
+      const fallbackAllianceRank = index + 1;
+      const allianceRank = metric === 'weekly'
+        ? Number(row.weeklyAlliancePosition || row.weeklyPosition || fallbackAllianceRank)
+        : Number(row.dayAlliancePositions?.[dayIndex] || fallbackAllianceRank);
+      const overallRank = metric === 'weekly'
+        ? Number(row.weeklyOverallPosition || 0)
+        : Number(row.dayOverallPositions?.[dayIndex] || 0);
+      return [String(row.publicId), { allianceRank, overallRank }];
+    }));
+
+    const cacheValue = { rankMap, matchup: data.matchup || null, fetchedAt: Date.now(), loading: false };
+    duelRankCache.set(key, cacheValue);
+    paintDuelContext(data.matchup || null);
 
     const currentKey = `${document.getElementById('cycle-select')?.value || ''}|${Number(document.getElementById('week-select')?.value || 1)}|${document.getElementById('duel-metric')?.value || 'weekly'}`;
     if (currentKey === key) {
@@ -107,9 +123,52 @@ function paintStableRanks(table, rankMap) {
   table.querySelectorAll('tbody tr[data-player]').forEach(row => {
     const rank = rankMap.get(String(row.dataset.player));
     const cell = row.querySelector('.rank-cell');
-    if (!cell || !rank) return;
-    const label = `#${rank}`;
-    if (cell.textContent.trim() !== label) cell.textContent = label;
-    cell.dataset.stableRank = String(rank);
+    if (!cell || !rank?.allianceRank) return;
+
+    const allianceRank = String(rank.allianceRank);
+    const overallRank = rank.overallRank ? String(rank.overallRank) : '';
+    if (cell.dataset.stableRank === allianceRank && String(cell.dataset.overallRank || '') === overallRank) return;
+
+    const allianceLabel = `#${allianceRank}`;
+    const overallLabel = overallRank ? `Overall #${overallRank}` : '';
+    cell.innerHTML = `<strong>${allianceLabel}</strong>${overallLabel ? `<small class="muted">${overallLabel}</small>` : ''}`;
+    cell.dataset.stableRank = allianceRank;
+    if (overallRank) cell.dataset.overallRank = overallRank;
+    else delete cell.dataset.overallRank;
+    cell.title = overallLabel
+      ? `WDZ rank ${allianceLabel} · ${overallLabel}`
+      : `WDZ rank ${allianceLabel}`;
   });
+}
+
+function paintDuelContext(matchup) {
+  const host = document.getElementById('duel-content');
+  if (!host) return;
+  const existing = host.querySelector('.duel-live-context');
+  if (!matchup?.opponent?.abbr) {
+    existing?.remove();
+    return;
+  }
+
+  const primary = matchup.primary || {};
+  const opponent = matchup.opponent || {};
+  const primaryLabel = [primary.abbr || 'WDZ', primary.name].filter(Boolean).join(' · ');
+  const opponentLabel = [opponent.abbr, opponent.name].filter(Boolean).join(' · ');
+  const state = opponent.serverId ? `State ${Number(opponent.serverId)}` : 'State unknown';
+  const group = matchup.duelGroup ? `Duel group ${matchup.duelGroup}` : 'Duel group unknown';
+  const captured = matchup.capturedAt ? `Synced ${new Date(matchup.capturedAt).toLocaleString()}` : 'Synced matchup';
+  const signature = `${primaryLabel}|${opponentLabel}|${state}|${group}|${captured}`;
+  if (existing?.dataset.matchupSignature === signature) return;
+
+  const panel = existing || document.createElement('section');
+  panel.className = 'method-box duel-live-context';
+  panel.dataset.matchupSignature = signature;
+  panel.innerHTML = `<strong>${escapeHtml(primaryLabel)} vs ${escapeHtml(opponentLabel)}</strong><span class="muted">${escapeHtml(state)} · ${escapeHtml(group)} · ${escapeHtml(captured)}</span>`;
+  if (!existing) host.insertAdjacentElement('afterbegin', panel);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  })[char]);
 }

@@ -10,7 +10,7 @@ from direct_duel import validate_sync_summary
 
 
 class App(DirectFullSyncApp):
-    """Direct Duel 1.8.2: pull locally, validate, then sync the exact session."""
+    """Direct Duel 1.8.3: pull locally, validate, then sync full-fidelity Duel data."""
 
     def __init__(self) -> None:
         self.direct_duel_sync_after_pull = False
@@ -30,19 +30,20 @@ class App(DirectFullSyncApp):
         )
         self.direct_duel_status.configure(
             text=(
-                "Pull + Sync first captures the seven verified read-only Duel responses locally, validates that every "
-                "required normalized dataset is present, packages the ZIP, and only then uploads that exact session to "
-                "Alliance Tracker. Partial captures never auto-sync."
+                "Pull + Sync captures the seven verified read-only Duel responses locally, validates every required "
+                "dataset including group context, packages the ZIP, and only then uploads that exact session. The "
+                "cloud must confirm matchup and exact-rank persistence before the local session is marked synced."
             ),
             text_color=Colors.MUTED,
         )
         self._set_direct_summary(
-            "PULL + SYNC DUEL is a two-phase operation:\n"
+            "PULL + SYNC DUEL is a validated full-fidelity operation:\n"
             "  1. Pull current Duel data directly from Last Z and save it locally.\n"
-            "  2. Validate current day, weekly combined, My Alliance weekly, completed days, official results, and season context.\n"
-            "  3. Upload only that validated session to https://wdz.state305.cc.\n\n"
-            "PULL ONLY performs steps 1-2 without uploading. Re-running during the week is safe: the cloud keeps newer "
-            "authoritative rows and records score changes."
+            "  2. Validate current day, weekly combined, My Alliance weekly, completed days when available, official results, season, and Duel group context.\n"
+            "  3. Upload only that validated session to https://wdz.state305.cc.\n"
+            "  4. Require cloud confirmation that opponent/group context and exact overall + alliance rank positions were preserved.\n\n"
+            "PULL ONLY performs the complete local collection without uploading. Re-running during the week is safe: "
+            "identical snapshots are deduplicated and newer score/rank captures update the current week."
         )
 
     def _start_pull_and_sync(self) -> None:
@@ -114,7 +115,7 @@ class App(DirectFullSyncApp):
 
         self._set_direct_buttons(False)
         self._set_direct_status(
-            f"Pull validated ({len(snapshots)} snapshot(s)). Uploading this exact session to Alliance Tracker…",
+            f"Pull validated ({len(snapshots)} snapshot(s)). Uploading this exact session with full-fidelity verification…",
             Colors.ACCENT,
         )
         self._append_direct_summary([
@@ -126,6 +127,24 @@ class App(DirectFullSyncApp):
         def work() -> None:
             try:
                 result = CloudClient(endpoint, token).upload(snapshots)
+                fidelity = result.get("fidelitySync") if isinstance(result, dict) else None
+                rank_sync = result.get("rankSync") if isinstance(result, dict) else None
+                if not isinstance(fidelity, dict) or not fidelity.get("ok"):
+                    raise RuntimeError(
+                        "The cloud endpoint accepted the score payload but did not confirm the full-fidelity Duel "
+                        "matchup sync. Deploy the current Alliance Tracker Cloudflare Worker before retrying."
+                    )
+                if not isinstance(rank_sync, dict) or not rank_sync.get("ok"):
+                    raise RuntimeError(
+                        "The cloud endpoint did not confirm exact overall/alliance rank persistence. Deploy the current "
+                        "Alliance Tracker Cloudflare Worker before retrying."
+                    )
+                if not fidelity.get("matchupCaptured"):
+                    raise RuntimeError(
+                        "The score pull was valid, but the cloud could not identify the current Duel opponent from the "
+                        "group + combined-ranking context. The local package was kept for inspection."
+                    )
+
                 ids = result.get("acceptedSnapshotIds") or [row["id"] for row in snapshots]
                 self.store.mark_synced(int(value) for value in ids)
                 self.after(0, lambda: self._direct_sync_done(session_id, result, len(ids)))
@@ -142,18 +161,36 @@ class App(DirectFullSyncApp):
         cycle_week = result.get("cycleWeek", "—")
         weekly_changes = int(result.get("weeklyChanges", 0))
         daily_changes = int(result.get("dailyChanges", 0))
+        fidelity = result.get("fidelitySync") if isinstance(result.get("fidelitySync"), dict) else {}
+        rank_sync = result.get("rankSync") if isinstance(result.get("rankSync"), dict) else {}
+        matchup = result.get("matchup") if isinstance(result.get("matchup"), dict) else {}
+        primary = matchup.get("primary") if isinstance(matchup.get("primary"), dict) else {}
+        opponent = matchup.get("opponent") if isinstance(matchup.get("opponent"), dict) else {}
+
+        primary_abbr = str(primary.get("abbr") or "WDZ")
+        opponent_abbr = str(opponent.get("abbr") or "—")
+        opponent_name = str(opponent.get("name") or "")
+        opponent_state = opponent.get("serverId")
+        state_text = f"State {opponent_state}" if opponent_state not in (None, "", 0) else "State —"
+        opponent_text = " · ".join(value for value in (opponent_abbr, opponent_name, state_text) if value)
+        duel_group = str(matchup.get("duelGroup") or "—")
+
         self._append_direct_summary([
-            "Cloud sync: COMPLETE",
+            "Cloud sync: COMPLETE + VERIFIED",
             f"Session: {session_id}",
+            f"Matchup: {primary_abbr} vs {opponent_text}",
+            f"Duel group: {duel_group}",
+            f"Group alliances stored: {int(fidelity.get('groupMembers', 0))}",
+            f"Exact rank rows preserved: {int(rank_sync.get('rows', 0))}",
             f"Accepted snapshots: {accepted}",
             f"Already-known snapshots: {duplicates}",
             f"Marked synced locally: {marked}",
             f"Cycle / week: {cycle_id} / {cycle_week}",
-            f"Weekly rows updated: {weekly_changes}",
-            f"Daily rows updated: {daily_changes}",
+            f"Weekly score rows updated: {weekly_changes}",
+            f"Daily score rows updated: {daily_changes}",
         ])
         self._set_direct_status(
-            f"Pull + Sync complete. {accepted} new snapshot(s), {duplicates} duplicate(s); dashboard data is updated.",
+            f"Pull + Sync verified. {primary_abbr} vs {opponent_abbr}; scores, matchup, group context, and exact ranks are preserved.",
             Colors.SUCCESS,
         )
         self.refresh_sessions()
@@ -161,12 +198,12 @@ class App(DirectFullSyncApp):
     def _direct_sync_failed(self, session_id: str, message: str) -> None:
         self._set_direct_buttons(True)
         self._append_direct_summary([
-            "Cloud sync: FAILED",
+            "Cloud sync: FAILED / NOT VERIFIED",
             f"Session: {session_id}",
             message,
-            "The local package was preserved. Retrying Sync Latest Session is safe because cloud snapshots are deduplicated.",
+            "The local package was preserved and was not marked synced. Retrying is safe because cloud snapshots are deduplicated.",
         ])
         self._set_direct_status(
-            "The pull was saved and validated locally, but the cloud upload failed. The local session can be retried safely.",
+            "The pull was saved locally, but full-fidelity cloud verification did not complete. The session can be retried safely.",
             Colors.DANGER,
         )
