@@ -30,6 +30,15 @@ def test_both_probe_requires_two_rank_responses() -> None:
     assert expected["al.battle.rank.info"] == 2
 
 
+def test_full_sync_requires_all_four_rank_views() -> None:
+    expected = expected_commands("sync")
+    assert expected["get.alliance.duel.season.info"] == 1
+    assert expected["get.alliance.duel.group.info"] == 1
+    assert expected["al.battle.week.result.info"] == 1
+    assert expected["al.battle.rank.info"] == 4
+    assert probe_complete("sync", Counter(expected))
+
+
 def test_explorer_tracks_bounded_request_counts() -> None:
     expected = expected_commands("explore")
     assert expected["get.alliance.duel.season.info"] == 1
