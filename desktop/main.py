@@ -12,7 +12,7 @@ app_v170_runtime.App = CurrentApp
 
 import startup as base_startup
 
-base_startup.APP_VERSION = "1.7.8-direct-duel-proven"
+base_startup.APP_VERSION = "1.7.9-direct-duel-live-manager"
 
 
 if __name__ == "__main__":
