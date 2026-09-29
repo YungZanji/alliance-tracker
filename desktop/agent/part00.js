@@ -14,6 +14,7 @@ const attachedAddresses = new Set();
 const TARGET_COMMANDS = new Set([
   'al.battle.rank.info',
   'get.alliance.duel.season.info',
+  'get.alliance.duel.group.info',
   'al.battle.week.result.info'
 ]);
 
@@ -82,6 +83,7 @@ function resolveApi(module) {
     type_get_name: fn('il2cpp_type_get_name', 'pointer', ['pointer']),
     object_get_class: fn('il2cpp_object_get_class', 'pointer', ['pointer']),
     runtime_invoke: fn('il2cpp_runtime_invoke', 'pointer', ['pointer', 'pointer', 'pointer', 'pointer']),
+    string_new: fn('il2cpp_string_new', 'pointer', ['pointer']),
     string_length: fn('il2cpp_string_length', 'int', ['pointer']),
     string_chars: fn('il2cpp_string_chars', 'pointer', ['pointer'])
   };
@@ -178,3 +180,40 @@ function enumerateMethods(klass, wantedName, wantedParams) {
     let primary = ptr(0);
     let virtualp = ptr(0);
     try { primary = method.readPointer(); } catch (_) {}
+    try { virtualp = method.add(Process.pointerSize).readPointer(); } catch (_) {}
+
+    out.push({
+      method,
+      name,
+      paramCount,
+      paramTypes,
+      returnType,
+      primary,
+      virtualp
+    });
+  }
+  return out;
+}
+
+function findMethodInHierarchy(klass, name, paramCount) {
+  let current = klass;
+  while (current && !current.isNull()) {
+    try {
+      const method = api.class_get_method_from_name(current, Memory.allocUtf8String(name), paramCount);
+      if (method && !method.isNull()) return method;
+    } catch (_) {}
+    try { current = api.class_get_parent(current); } catch (_) { break; }
+  }
+  return ptr(0);
+}
+
+function forMethodPointers(method, label, callbacks) {
+  for (const address of [method.primary, method.virtualp]) {
+    if (!address || address.isNull()) continue;
+    const key = `${label}:${address.toString()}`;
+    if (attachedAddresses.has(key)) continue;
+    attachedAddresses.add(key);
+    Interceptor.attach(address, callbacks);
+    installedHooks.push({ label, address: address.toString() });
+  }
+}
