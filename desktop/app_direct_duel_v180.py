@@ -4,6 +4,8 @@ from typing import Any
 
 from app import Colors
 from app_direct_duel_v178 import App as DirectDuelDiagnosticsApp
+from capture import decode_response
+from direct_duel import summarize_response
 
 
 class App(DirectDuelDiagnosticsApp):
@@ -33,7 +35,76 @@ class App(DirectDuelDiagnosticsApp):
             "No mutation commands and no arbitrary request console are exposed."
         )
 
+    @staticmethod
+    def _find(value: Any, key: str) -> Any:
+        if isinstance(value, dict):
+            if key in value:
+                return value[key]
+            for child in value.values():
+                found = App._find(child, key)
+                if found is not None:
+                    return found
+        elif isinstance(value, list):
+            for child in value:
+                found = App._find(child, key)
+                if found is not None:
+                    return found
+        return None
+
+    def _write_explorer_response_observation(self, payload: Any) -> None:
+        try:
+            command, sequence, captured_at, decoded = decode_response(payload)
+        except Exception as exc:
+            self._write_direct_diagnostic(
+                "direct-duel-explorer-response-decode-error",
+                {"error": str(exc)},
+            )
+            return
+
+        if command not in {
+            "get.alliance.duel.season.info",
+            "get.alliance.duel.group.info",
+            "al.battle.week.result.info",
+            "al.battle.rank.info",
+        }:
+            return
+
+        rank_info = self._find(decoded, "rankInfo")
+        flattened_rows = 0
+        if isinstance(rank_info, list):
+            for item in rank_info:
+                if isinstance(item, list):
+                    flattened_rows += len(item)
+                elif isinstance(item, dict):
+                    flattened_rows += 1
+
+        self._write_direct_diagnostic(
+            "direct-duel-explorer-response",
+            {
+                "sequence": sequence,
+                "capturedAt": captured_at,
+                "command": command,
+                "summary": summarize_response(command, decoded),
+                "rankType": self._find(decoded, "type"),
+                "weekStartTime": self._find(decoded, "startTime"),
+                "currentGroup": (
+                    (self._find(decoded, "duelInfo") or {}).get("group")
+                    if isinstance(self._find(decoded, "duelInfo"), dict)
+                    else None
+                ),
+                "previousGroup": (
+                    (self._find(decoded, "lastDuelInfo") or {}).get("group")
+                    if isinstance(self._find(decoded, "lastDuelInfo"), dict)
+                    else None
+                ),
+                "rankRows": flattened_rows,
+            },
+        )
+
     def handle(self, kind: str, payload: Any) -> None:
+        if kind == "response" and self.direct_duel_active and self.direct_duel_mode == "explore":
+            self._write_explorer_response_observation(payload)
+
         super().handle(kind, payload)
 
         if (
