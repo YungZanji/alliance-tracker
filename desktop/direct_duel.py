@@ -45,16 +45,20 @@ def probe_complete(mode: str, observed: Counter[str]) -> bool:
 
 
 def validate_sync_summary(summary: dict[str, Any]) -> tuple[bool, list[str]]:
-    """Require the normalized data needed for a safe current-week cloud sync.
+    """Require every normalized dataset needed for a safe current-week cloud sync.
 
     completed_days is intentionally optional because on the first active Duel day
-    the type-3 request legitimately returns an empty ranking, which the normalizer
-    does not persist as a snapshot. probe_complete() still requires the type-3
-    server response itself before this validation runs.
+    the type-3 request can legitimately contain no completed-day player rows.
+    probe_complete() still requires the type-3 server response before validation.
     """
     quality = summary.get("captureQuality") if isinstance(summary, dict) else None
     quality = quality if isinstance(quality, dict) else {}
     captured = {str(value) for value in (quality.get("rankTypesCaptured") or [])}
+    datasets = {
+        str(row.get("dataset") or "")
+        for row in (summary.get("datasets") or [])
+        if isinstance(row, dict)
+    }
     missing: list[str] = []
 
     for label in sorted(DIRECT_DUEL_REQUIRED_SYNC_RANK_LABELS):
@@ -64,6 +68,8 @@ def validate_sync_summary(summary: dict[str, Any]) -> tuple[bool, list[str]]:
         missing.append("official_daily_results")
     if not bool(quality.get("seasonCaptured")):
         missing.append("season_context")
+    if "alliance_duel_group" not in datasets:
+        missing.append("duel_group_context")
     return (not missing, missing)
 
 
