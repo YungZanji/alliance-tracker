@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-DIRECT_DUEL_MODES = ("previous", "current", "context", "both")
+DIRECT_DUEL_MODES = ("previous", "current", "context", "both", "explore")
 DIRECT_DUEL_CONTEXT_COMMANDS = (
     "get.alliance.duel.season.info",
     "get.alliance.duel.group.info",
@@ -20,6 +20,13 @@ def expected_commands(mode: str) -> Counter[str]:
         commands["al.battle.rank.info"] += 1
     elif selected == "both":
         commands["al.battle.rank.info"] += 2
+    elif selected == "explore":
+        # Explorer sends 21 bounded read-only requests. Some experimental
+        # argument shapes may be ignored or may not receive a response, so the
+        # UI packages on a timed grace period rather than requiring these counts.
+        commands["get.alliance.duel.group.info"] = 2
+        commands["al.battle.week.result.info"] = 3
+        commands["al.battle.rank.info"] = 15
     return commands
 
 
@@ -44,19 +51,32 @@ def _find_key(value: Any, key: str) -> Any:
     return None
 
 
+def _flatten_player_rows(value: Any) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        if any(key in value for key in ("uid", "name", "score", "aid")):
+            rows.append(value)
+        else:
+            for child in value.values():
+                rows.extend(_flatten_player_rows(child))
+    elif isinstance(value, list):
+        for child in value:
+            rows.extend(_flatten_player_rows(child))
+    return rows
+
+
 def summarize_response(command: str, decoded: Any) -> str:
     command = str(command or "")
     if command == "al.battle.rank.info":
-        rows = _find_key(decoded, "rankInfo")
-        if not isinstance(rows, list):
-            rows = _find_key(decoded, "rankInfos")
-        count = len(rows) if isinstance(rows, list) else 0
-        wdz = 0
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, dict) and str(row.get("abbr") or "").upper() == "WDZ":
-                    wdz += 1
-        return f"ranking response: {count} player row(s), {wdz} WDZ row(s)"
+        source = _find_key(decoded, "rankInfo")
+        if source is None:
+            source = _find_key(decoded, "rankInfos")
+        rows = _flatten_player_rows(source)
+        wdz = sum(1 for row in rows if str(row.get("abbr") or "").upper() == "WDZ")
+        rank_type = _find_key(decoded, "type")
+        day_groups = len(source) if isinstance(source, list) and source and isinstance(source[0], list) else 0
+        extra = f", {day_groups} day group(s)" if day_groups else ""
+        return f"ranking type {rank_type}: {len(rows)} player row(s), {wdz} WDZ row(s){extra}"
 
     if command == "get.alliance.duel.season.info":
         current = _find_key(decoded, "duelInfo")
@@ -73,6 +93,7 @@ def summarize_response(command: str, decoded: Any) -> str:
     if command == "al.battle.week.result.info":
         rows = _find_key(decoded, "resultArray")
         count = len(rows) if isinstance(rows, list) else 0
-        return f"week results: {count} day result(s)"
+        start = _find_key(decoded, "startTime")
+        return f"week results: start={start or '—'}, {count} day result(s)"
 
     return command or "unknown response"

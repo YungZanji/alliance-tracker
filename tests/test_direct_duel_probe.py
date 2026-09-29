@@ -30,15 +30,37 @@ def test_both_probe_requires_two_rank_responses() -> None:
     assert expected["al.battle.rank.info"] == 2
 
 
+def test_explorer_tracks_bounded_request_counts() -> None:
+    expected = expected_commands("explore")
+    assert expected["get.alliance.duel.season.info"] == 1
+    assert expected["get.alliance.duel.group.info"] == 2
+    assert expected["al.battle.week.result.info"] == 3
+    assert expected["al.battle.rank.info"] == 15
+
+
 def test_rank_summary_counts_wdz_rows() -> None:
     decoded = {
+        "type": 1,
         "rankInfo": [
             {"uid": "1", "name": "A", "abbr": "WDZ", "score": 10},
             {"uid": "2", "name": "B", "abbr": "ARE", "score": 20},
             {"uid": "3", "name": "C", "abbr": "WDZ", "score": 30},
-        ]
+        ],
     }
-    assert summarize_response("al.battle.rank.info", decoded) == "ranking response: 3 player row(s), 2 WDZ row(s)"
+    assert summarize_response("al.battle.rank.info", decoded) == "ranking type 1: 3 player row(s), 2 WDZ row(s)"
+
+
+def test_rank_summary_flattens_completed_day_groups() -> None:
+    decoded = {
+        "type": 3,
+        "rankInfo": [[
+            {"uid": "1", "name": "A", "abbr": "WDZ", "score": 10},
+            {"uid": "2", "name": "B", "abbr": "UF3R", "score": 20},
+        ]],
+    }
+    assert summarize_response("al.battle.rank.info", decoded) == (
+        "ranking type 3: 2 player row(s), 1 WDZ row(s), 1 day group(s)"
+    )
 
 
 def test_season_summary_reports_current_and_previous_groups() -> None:
