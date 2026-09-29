@@ -15,7 +15,7 @@ app_v170_runtime.App = CurrentApp
 
 import startup as base_startup
 
-base_startup.APP_VERSION = "1.8.2-direct-duel-pull-sync"
+base_startup.APP_VERSION = "1.8.3-direct-duel-full-fidelity"
 
 
 if __name__ == "__main__":
