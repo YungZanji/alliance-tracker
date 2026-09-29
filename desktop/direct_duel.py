@@ -9,6 +9,12 @@ DIRECT_DUEL_CONTEXT_COMMANDS = (
     "get.alliance.duel.group.info",
     "al.battle.week.result.info",
 )
+DIRECT_DUEL_SYNC_RANK_LABELS = {
+    "current_day_combined",
+    "weekly_combined",
+    "weekly_own_alliance",
+    "completed_days",
+}
 
 
 def expected_commands(mode: str) -> Counter[str]:
@@ -37,6 +43,23 @@ def expected_commands(mode: str) -> Counter[str]:
 def probe_complete(mode: str, observed: Counter[str]) -> bool:
     wanted = expected_commands(mode)
     return all(int(observed.get(command, 0)) >= count for command, count in wanted.items())
+
+
+def validate_sync_summary(summary: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Require every normalized dataset needed for a safe current-week cloud sync."""
+    quality = summary.get("captureQuality") if isinstance(summary, dict) else None
+    quality = quality if isinstance(quality, dict) else {}
+    captured = {str(value) for value in (quality.get("rankTypesCaptured") or [])}
+    missing: list[str] = []
+
+    for label in sorted(DIRECT_DUEL_SYNC_RANK_LABELS):
+        if label not in captured:
+            missing.append(label)
+    if not bool(quality.get("officialResultsCaptured")):
+        missing.append("official_daily_results")
+    if not bool(quality.get("seasonCaptured")):
+        missing.append("season_context")
+    return (not missing, missing)
 
 
 def _find_key(value: Any, key: str) -> Any:
