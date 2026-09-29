@@ -54,6 +54,8 @@ assert.match(ui, /gloryWarBaseline/);
 assert.match(ui, /playedEvents/);
 assert.match(ui, /genuine missed completed event is zero/);
 assert.match(index, /app-v086\.js\?v=117/);
-assert.match(wrangler, /scoring-entry-v161\.js/);
+// Newer workers are intentionally layered on top of v161. This verifier only
+// needs to ensure production still routes through that compatible chain.
+assert.match(wrangler, /scoring-entry-v16[1-9]\.js/);
 
 console.log('Verified Glory War Contribution Index, 1M baseline, Bye/Leave/No Event handling, missed-event zero, Admin control, and active leaderboard display.');
