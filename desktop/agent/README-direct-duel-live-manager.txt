@@ -1,1 +1,0 @@
-Direct Duel 1.7.9 uses the live XLuaManager instance observed by the existing Update and DispatchResponse hooks instead of rediscovering it through Unity Resources. This file is documentation only.
