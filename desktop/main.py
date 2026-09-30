@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import app_v170_runtime
-from app_direct_duel_v182 import App as CurrentApp
+from app_direct_events_v184 import App as CurrentApp
 
 # Compatibility markers retained for the long-running build verifier:
 # from app_direct_duel_v181 import App as CurrentApp
@@ -15,7 +15,7 @@ app_v170_runtime.App = CurrentApp
 
 import startup as base_startup
 
-base_startup.APP_VERSION = "1.8.3-direct-duel-full-fidelity"
+base_startup.APP_VERSION = "1.8.4-direct-event-score-tests"
 
 
 if __name__ == "__main__":
