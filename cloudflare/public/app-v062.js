@@ -126,18 +126,11 @@ function paintStableRanks(table, rankMap) {
     if (!cell || !rank?.allianceRank) return;
 
     const allianceRank = String(rank.allianceRank);
-    const overallRank = rank.overallRank ? String(rank.overallRank) : '';
-    if (cell.dataset.stableRank === allianceRank && String(cell.dataset.overallRank || '') === overallRank) return;
-
-    const allianceLabel = `#${allianceRank}`;
-    const overallLabel = overallRank ? `Overall #${overallRank}` : '';
-    cell.innerHTML = `<strong>${allianceLabel}</strong>${overallLabel ? `<small class="muted">${overallLabel}</small>` : ''}`;
+    if (cell.dataset.stableRank === allianceRank && cell.textContent.trim() === allianceRank) return;
+    cell.textContent = allianceRank;
     cell.dataset.stableRank = allianceRank;
-    if (overallRank) cell.dataset.overallRank = overallRank;
-    else delete cell.dataset.overallRank;
-    cell.title = overallLabel
-      ? `WDZ rank ${allianceLabel} · ${overallLabel}`
-      : `WDZ rank ${allianceLabel}`;
+    delete cell.dataset.overallRank;
+    cell.title = `WDZ rank ${allianceRank}`;
   });
 }
 
@@ -145,25 +138,19 @@ function paintDuelContext(matchup) {
   const host = document.getElementById('duel-content');
   if (!host) return;
   const existing = host.querySelector('.duel-live-context');
-  if (!matchup?.opponent?.abbr) {
+  if (!matchup?.capturedAt) {
     existing?.remove();
     return;
   }
 
-  const primary = matchup.primary || {};
-  const opponent = matchup.opponent || {};
-  const primaryLabel = [primary.abbr || 'WDZ', primary.name].filter(Boolean).join(' · ');
-  const opponentLabel = [opponent.abbr, opponent.name].filter(Boolean).join(' · ');
-  const state = opponent.serverId ? `State ${Number(opponent.serverId)}` : 'State unknown';
-  const group = matchup.duelGroup ? `Duel group ${matchup.duelGroup}` : 'Duel group unknown';
-  const captured = matchup.capturedAt ? `Synced ${new Date(matchup.capturedAt).toLocaleString()}` : 'Synced matchup';
-  const signature = `${primaryLabel}|${opponentLabel}|${state}|${group}|${captured}`;
+  const captured = `Last synced: ${new Date(matchup.capturedAt).toLocaleString()}`;
+  const signature = captured;
   if (existing?.dataset.matchupSignature === signature) return;
 
   const panel = existing || document.createElement('section');
   panel.className = 'method-box duel-live-context';
   panel.dataset.matchupSignature = signature;
-  panel.innerHTML = `<strong>${escapeHtml(primaryLabel)} vs ${escapeHtml(opponentLabel)}</strong><span class="muted">${escapeHtml(state)} · ${escapeHtml(group)} · ${escapeHtml(captured)}</span>`;
+  panel.textContent = captured;
   if (!existing) host.insertAdjacentElement('afterbegin', panel);
 }
 

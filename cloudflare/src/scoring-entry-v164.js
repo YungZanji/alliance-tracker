@@ -1,4 +1,5 @@
 import portal from './scoring-entry-v163.js';
+import { ingestGloryWar } from './scoring-entry-v155.js';
 
 // Confirm the Glory War ingestion performed by v155 before the desktop marks
 // its local score snapshot as synchronized. v155 intentionally leaves its
@@ -25,9 +26,23 @@ export default {
     try {
       const sourceHash = String(glory[glory.length - 1].source_hash || glory[glory.length - 1].sourceHash || '');
       if (!sourceHash) throw new Error('Missing Glory War source hash.');
-      const match = await env.DB.prepare(
+      let match = await env.DB.prepare(
         'SELECT cycle_id,cycle_week,result,opponent_alliance_abbr,opponent_server_id,player_count FROM glory_war_matches WHERE source_hash=? ORDER BY captured_at DESC LIMIT 1'
       ).bind(sourceHash).first();
+      // An older Worker may have accepted the capture before Glory ingestion was
+      // deployed. The regular sync treats the retry as a duplicate and omits
+      // cycle context, so recover that context from the existing capture.
+      if (!match) {
+        const capture = await env.DB.prepare(
+          "SELECT cycle_id,cycle_week FROM captures WHERE dataset='glory_war_rankings' AND source_hash=? ORDER BY received_at DESC LIMIT 1"
+        ).bind(sourceHash).first();
+        if (capture?.cycle_id && Number(capture.cycle_week) >= 1) {
+          await ingestGloryWar(glory, { cycleId: capture.cycle_id, cycleWeek: capture.cycle_week }, env);
+          match = await env.DB.prepare(
+            'SELECT cycle_id,cycle_week,result,opponent_alliance_abbr,opponent_server_id,player_count FROM glory_war_matches WHERE source_hash=? ORDER BY captured_at DESC LIMIT 1'
+          ).bind(sourceHash).first();
+        }
+      }
       if (!match) throw new Error('Glory War match was not persisted.');
       const scores = await env.DB.prepare(
         "SELECT COUNT(*) AS n FROM event_week_scores WHERE event_type='glory_war' AND cycle_id=? AND cycle_week=? AND source_hash=?"
