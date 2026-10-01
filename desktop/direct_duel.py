@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-DIRECT_DUEL_MODES = ("previous", "current", "context", "both", "explore", "sync", "glory", "ruler", "all-events")
+DIRECT_DUEL_MODES = ("previous", "current", "context", "both", "explore", "sync", "glory", "ruler", "all-events", "glory-history")
 DIRECT_DUEL_CONTEXT_COMMANDS = (
     "get.alliance.duel.season.info",
     "get.alliance.duel.group.info",
@@ -31,6 +31,8 @@ def expected_commands(mode: str) -> Counter[str]:
         commands["al.battle.rank.info"] += 4
     elif selected == "glory":
         commands = Counter({"alliance.declare.war.personal.rank": 1})
+    elif selected == "glory-history":
+        commands = Counter({"domain.al.his": 1})
     elif selected == "ruler":
         commands = Counter({"server.battle.user.score.rank": 1, "al.rank": 1})
     elif selected == "all-events":
