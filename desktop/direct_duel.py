@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-DIRECT_DUEL_MODES = ("previous", "current", "context", "both", "explore", "sync")
+DIRECT_DUEL_MODES = ("previous", "current", "context", "both", "explore", "sync", "glory", "ruler", "all-events")
 DIRECT_DUEL_CONTEXT_COMMANDS = (
     "get.alliance.duel.season.info",
     "get.alliance.duel.group.info",
@@ -29,6 +29,15 @@ def expected_commands(mode: str) -> Counter[str]:
         # Complete current Duel pull: type 0 current day, type 1 weekly combined,
         # type 2 own-alliance weekly, and type 3 completed-day history.
         commands["al.battle.rank.info"] += 4
+    elif selected == "glory":
+        commands = Counter({"alliance.declare.war.personal.rank": 1})
+    elif selected == "ruler":
+        commands = Counter({"server.battle.user.score.rank": 1, "al.rank": 1})
+    elif selected == "all-events":
+        commands["al.battle.rank.info"] += 4
+        commands["alliance.declare.war.personal.rank"] = 1
+        commands["server.battle.user.score.rank"] = 1
+        commands["al.rank"] = 1
     elif selected == "explore":
         # Explorer sends 21 bounded read-only requests. Some experimental
         # argument shapes may be ignored or may not receive a response, so the
