@@ -43,7 +43,7 @@ async function requireUser(request, env, ctx) {
   return response.ok ? null : response;
 }
 
-async function ingestGloryWar(snapshots, syncResult, env) {
+export async function ingestGloryWar(snapshots, syncResult, env) {
   const cycleId = String(syncResult?.cycleId || '').trim();
   const cycleWeek = Number(syncResult?.cycleWeek || 0);
   if (!cycleId || cycleWeek < 1 || cycleWeek > 4) return;

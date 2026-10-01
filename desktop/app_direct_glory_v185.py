@@ -136,7 +136,12 @@ class App(DirectEventApp):
                 result = CloudClient(endpoint, token).upload(rows)
                 confirmation = result.get("glorySync") if isinstance(result, dict) else None
                 if not isinstance(confirmation, dict) or not confirmation.get("ok"):
-                    raise RuntimeError("Cloud did not confirm Glory War match and player-score persistence. Deploy the current Alliance Tracker Worker and retry this saved session.")
+                    raise RuntimeError(
+                        "Cloud accepted the capture but did not confirm Glory War scores "
+                        f"(accepted={result.get('accepted')}, duplicates={result.get('duplicates')}, "
+                        f"cycle={result.get('cycleId')}, week={result.get('cycleWeek')}). "
+                        "Deploy the current Alliance Tracker Worker, then press Pull + Sync Glory War again."
+                    )
                 if str(confirmation.get("opponentAllianceAbbr") or "").upper() != str(summary["opponentAllianceAbbr"]).upper() or \
                         str(confirmation.get("result") or "").upper() != str(summary["result"]).upper():
                     raise RuntimeError("Cloud confirmation did not match the locally validated Glory War result.")
@@ -162,5 +167,5 @@ class App(DirectEventApp):
 
     def _glory_sync_failed(self, message: str) -> None:
         self._set_direct_buttons(True)
-        self._append_direct_summary(["Cloud sync: FAILED / NOT ACKNOWLEDGED", message, "The validated local ZIP remains available for retry."])
+        self._append_direct_summary(["Cloud sync: FAILED / NOT ACKNOWLEDGED", message, "The validated local ZIP remains available as a diagnostic record."])
         self._set_direct_status("Glory War validated locally, but cloud sync did not complete.", Colors.DANGER)
