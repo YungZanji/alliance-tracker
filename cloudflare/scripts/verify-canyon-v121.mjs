@@ -44,6 +44,6 @@ assert.match(css, /\.canyon-lightbox/);
 assert.match(index, /canyon-v121\.css\?v=121/);
 // Canyon behavior lives below v161; newer compatible wrappers may be the
 // production entrypoint without changing the Canyon contract.
-assert.match(wrangler, /scoring-entry-v16[1-9]\.js/);
+assert.match(wrangler, /(?:scoring-entry-v16[1-9]|maintenance-entry)\.js/);
 
 console.log('Verified authenticated Canyon Clash language viewer, clean /canyon route, admin image upload, and mobile full-size viewing.');

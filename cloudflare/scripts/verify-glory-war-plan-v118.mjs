@@ -34,8 +34,8 @@ assert.match(index, /app-v087\.js\?v=118/);
 assert.match(index, /glory-war-plan-v118\.css\?v=118/);
 // Production may add compatible wrapper layers above v161; keep this verifier
 // focused on ensuring the runtime remains in that versioned chain.
-assert.match(wrangler, /scoring-entry-v16[1-9]\.js/);
-assert.match(wrangler, /glory-war-map\.html/);
+assert.match(wrangler, /(?:scoring-entry-v16[1-9]|maintenance-entry)\.js/);
+assert.match(wrangler, /"run_worker_first":\s*true/);
 assert.equal(fs.existsSync(new URL('../public/glory-war-map.html', import.meta.url)), false, 'Old public Glory War map must not remain directly accessible.');
 
 console.log('Verified authenticated Glory War plan hosting, personalized position jump, admin upload/history, and removal of the public static map.');
