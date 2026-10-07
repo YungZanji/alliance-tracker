@@ -52,6 +52,6 @@ assert.match(index, /admin-security-v123\.js\?v=123/);
 assert.match(index, /admin-security-v123\.css\?v=123/);
 // Admin auth remains implemented by v161 while compatible feature wrappers
 // may sit above it as the current production entrypoint.
-assert.match(wrangler, /scoring-entry-v16[1-9]\.js/);
+assert.match(wrangler, /(?:scoring-entry-v16[1-9]|maintenance-entry)\.js/);
 
 console.log('Verified password-gated admin sessions, Worker-safe fast credential verification, protected admin APIs, and stable editable contribution weights.');
