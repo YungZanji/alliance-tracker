@@ -20,6 +20,9 @@
       "migrations_dir": "./migrations"
     }
   ],
+  "triggers": {
+    "crons": []
+  },
   "vars": {
     "APP_NAME": "Alliance Tracker",
     "PRIMARY_ALLIANCE_ABBR": "WDZ",
