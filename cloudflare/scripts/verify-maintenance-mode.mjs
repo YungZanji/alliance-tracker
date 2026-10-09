@@ -8,7 +8,8 @@ const worker = await import(`data:text/javascript;base64,${Buffer.from(source).t
 assert.match(config, /"main":\s*"\.\/src\/maintenance-entry\.js"/);
 assert.match(config, /"run_worker_first":\s*true/);
 assert.match(config, /"database_name":\s*"alliance-tracker-db"/);
-assert.doesNotMatch(config, /"triggers"\s*:/);
+assert.match(config, /"triggers":\s*\{\s*"crons":\s*\[\s*\]\s*\}/);
+assert.equal(typeof worker.default.scheduled, 'undefined');
 
 const page = await worker.default.fetch(new Request('https://wdz.state305.cc/'));
 assert.equal(page.status, 410);
@@ -29,4 +30,4 @@ const robots = await worker.default.fetch(new Request('https://wdz.state305.cc/r
 assert.equal(robots.status, 200);
 assert.match(await robots.text(), /Allow: \/\n/);
 
-console.log('Verified public pages show the no-index notice, application APIs are closed, deployment health stays available, and the existing D1 binding remains configured.');
+console.log('Verified maintenance page, closed APIs, health check, D1 binding, and explicit Cron Trigger removal.');
