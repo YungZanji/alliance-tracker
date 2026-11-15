@@ -3,15 +3,12 @@ import './app-v070.js';
 let scheduled = false;
 let guideBusy = false;
 let guideRendered = false;
-let leaderboardBusy = false;
-let leaderboardRenderedFor = '';
 let adminBusy = false;
 
 const observer = new MutationObserver(schedule);
 observer.observe(document.getElementById('app'), { childList: true, subtree: true });
 window.addEventListener('hashchange', () => {
   guideRendered = false;
-  leaderboardRenderedFor = '';
   schedule();
 });
 window.addEventListener('popstate', schedule);
@@ -25,7 +22,6 @@ function schedule() {
     ensureGuideNav();
     await Promise.allSettled([
       maybeRenderGuide(),
-      enhanceDuelLeaderboard(),
       enhanceDuelAdmin(),
     ]);
   }, 35));
@@ -159,71 +155,6 @@ function guideRule(icon, title, copy) {
   return `<article class="guide-card"><div class="guide-rule-icon">${esc(icon)}</div><h3>${esc(title)}</h3><p>${esc(copy)}</p></article>`;
 }
 
-async function enhanceDuelLeaderboard() {
-  const main = document.getElementById('main');
-  const title = main?.querySelector('.page-head h1')?.textContent?.trim() || '';
-  const tableHost = document.getElementById('participation-table');
-  if (!title.startsWith('Alliance Leaderboards') || !tableHost || leaderboardBusy) return;
-  const mountKey = `${title}|${tableHost.dataset.duelModel || ''}`;
-  if (tableHost.dataset.duelModel === 'v090' && leaderboardRenderedFor === mountKey) return;
-
-  leaderboardBusy = true;
-  try {
-    const data = await api('/api/participation');
-    if (!document.getElementById('participation-table')) return;
-    const subtitle = main.querySelector('.page-head p');
-    if (subtitle) subtitle.textContent = 'Alliance Duel performance across the current four-week Duel League.';
-    const method = main.querySelector('.method-box');
-    if (method) method.textContent = data.method || '';
-    const panelTitle = main.querySelector('.panel-title');
-    if (panelTitle) panelTitle.textContent = 'Alliance Duel performance ranking';
-    const panelMuted = main.querySelector('.panel-head .muted');
-    if (panelMuted) panelMuted.textContent = 'Ranked by Weighted Duel Average. 6M Consistency is the first tie-breaker.';
-
-    let search = document.getElementById('participation-search');
-    if (search && search.dataset.duelSearch !== 'v090') {
-      const replacement = search.cloneNode(true);
-      replacement.dataset.duelSearch = 'v090';
-      replacement.value = '';
-      search.replaceWith(replacement);
-      search = replacement;
-      search.addEventListener('input', event => renderDuelRows(data, event.target.value));
-    }
-    tableHost.dataset.duelModel = 'v090';
-    renderDuelRows(data, search?.value || '');
-    leaderboardRenderedFor = `${title}|v090`;
-  } catch (error) {
-    console.warn('Could not render weighted Alliance Duel leaderboard:', error);
-  } finally {
-    leaderboardBusy = false;
-  }
-}
-
-function renderDuelRows(data, query) {
-  const host = document.getElementById('participation-table');
-  if (!host) return;
-  const q = String(query || '').trim().toLowerCase();
-  const rows = (data.players || []).filter(row => !q || String(row.name || '').toLowerCase().includes(q));
-  if (!rows.length) {
-    host.innerHTML = '<div class="empty">No matching players.</div>';
-    return;
-  }
-  host.innerHTML = `<table class="responsive-table duel-season-table"><thead><tr>
-    <th>Rank</th><th>Player</th><th class="numeric">Weighted Duel Avg</th><th class="numeric">6M Consistency</th><th class="numeric">League Raw Points</th><th class="numeric">Played Weeks</th>
-  </tr></thead><tbody>${rows.map(row => {
-    const duel = row.components?.alliance_duel || {};
-    const qualification = row.qualification || {};
-    return `<tr data-player="${esc(row.publicId)}"${qualification.finalCheckActive && !qualification.qualified ? ' class="duel-provisional"' : ''}>
-      <td class="rank-cell">#${Number(row.rank || 0)}</td>
-      <td class="player-cell"><strong>${esc(row.name)}</strong><small>${esc(row.allianceAbbr)} · S${Number(row.serverId || 0)}${qualification.finalCheckActive && !qualification.qualified ? ' · Provisional' : ''}</small></td>
-      <td class="numeric score">${compactPoints(duel.weightedAverage || row.score)}</td>
-      <td class="numeric"><strong>${Number(duel.consistencyPercent || 0).toFixed(1)}%</strong><br><small class="muted">${Number(duel.minimumDaysHit || 0)}/${Number(duel.minimumDaysAvailable || 0)} days</small></td>
-      <td class="numeric">${format(duel.raw || 0)}</td>
-      <td class="numeric">${Number(duel.playedWeeks || 0)}${qualification.finalCheckActive ? ` / ${Number(qualification.requiredDuelWeeks || 3)} required` : ''}</td>
-    </tr>`;
-  }).join('')}</tbody></table>`;
-}
-
 async function enhanceDuelAdmin() {
   const main = document.getElementById('main');
   if (main?.querySelector('.page-head h1')?.textContent?.trim() !== 'Administrator') return;
@@ -282,8 +213,7 @@ async function saveDuelScoringModel() {
     if (document.getElementById('duel-model-minimum')) document.getElementById('duel-model-minimum').value = String(Number(duel.dailyMinimum || body.dailyMinimum));
     if (document.getElementById('duel-model-ranked-weeks')) document.getElementById('duel-model-ranked-weeks').value = String(Number(duel.minimumRankedDuelWeeks || body.minimumRankedDuelWeeks));
     guideRendered = false;
-    leaderboardRenderedFor = '';
-  } catch (error) {
+    } catch (error) {
     if (status) {
       status.textContent = error.message;
       status.className = 'duel-admin-status error';

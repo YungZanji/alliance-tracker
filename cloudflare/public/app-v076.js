@@ -46,16 +46,16 @@ async function enhanceCombinedLeaderboard() {
   main?.classList.add('combined-contribution-loading');
   try {
     const data = await api('/api/participation');
-    if (location.hash !== '#leaderboards' || !document.getElementById('participation-table')) return;
+    if (location.hash !== '#leaderboards' || !host.isConnected) return;
 
     const subtitle = main.querySelector('.page-head p');
-    if (subtitle) subtitle.textContent = 'Alliance Duel and State Ruler performance on one shared Contribution Index.';
+    if (subtitle) subtitle.textContent = 'Alliance Duel, State Ruler, and Glory War performance on one shared Contribution Index.';
     const method = main.querySelector('.method-box');
     if (method) method.innerHTML = `<strong>How this works:</strong> ${esc(data.method || '')}`;
     const panelTitle = main.querySelector('.panel-title');
     if (panelTitle) panelTitle.textContent = 'Overall Contribution ranking';
     const panelMuted = main.querySelector('.panel-head .muted');
-    if (panelMuted) panelMuted.textContent = 'Alliance Duel 45%, State Ruler 25%, Glory War 30% by default. Every value shown here is driven by the live Admin settings.';
+    if (panelMuted) panelMuted.textContent = 'Current season standings.';
 
     let search = document.getElementById('participation-search');
     if (search && search.dataset.combinedSearch !== '1') {
@@ -64,13 +64,12 @@ async function enhanceCombinedLeaderboard() {
       replacement.value = '';
       search.replaceWith(replacement);
       search = replacement;
-      search.addEventListener('input', event => renderCombinedRows(data, event.target.value));
+      search.addEventListener('input', event => renderCombinedRows(host, event.target.value));
     }
 
     host.dataset.duelModel = 'v090'; // Keep the older Duel-only enhancer from repainting over this table.
     host.dataset.combinedV100 = '1';
-    renderCombinedRows(data, search?.value || '');
-    ensureProvisionalBanner(main, data);
+    setLeaderboardData(host, data);
   } catch (error) {
     console.warn('Could not render combined Contribution leaderboard:', error);
   } finally {
@@ -79,9 +78,15 @@ async function enhanceCombinedLeaderboard() {
   }
 }
 
-function renderCombinedRows(data, query) {
-  const host = document.getElementById('participation-table');
-  if (!host) return;
+const leaderboardData = new WeakMap();
+export function setLeaderboardData(host, data) {
+  leaderboardData.set(host, data);
+  renderCombinedRows(host, host.closest('.panel')?.querySelector('#participation-search')?.value);
+}
+
+function renderCombinedRows(host, query) {
+  const data = leaderboardData.get(host);
+  if (!data) return;
   const q = String(query || '').trim().toLowerCase();
   const rows = (data.players || []).filter(row => !q || String(row.name || '').toLowerCase().includes(q));
   if (!rows.length) {
@@ -95,26 +100,16 @@ function renderCombinedRows(data, query) {
   </tr></thead><tbody>${rows.map(row => {
     const duel = row.components?.alliance_duel || {};
     const ruler = row.components?.state_ruler || {};
+    const glory = row.components?.glory_war;
     return `<tr data-player="${esc(row.publicId)}">
       <td class="rank-cell">#${Number(row.rank || 0)}</td>
       <td class="player-cell"><strong>${esc(row.name)}</strong><small>${esc(row.allianceAbbr)} · S${Number(row.serverId || 0)}</small></td>
       <td class="numeric contribution-score"><strong>${Number(row.score || 0).toFixed(1)}</strong><small>Duel ${pct(weights.alliance_duel)} · Ruler ${pct(weights.state_ruler)} · Glory ${pct(weights.glory_war)}</small></td>
       <td class="numeric event-index-cell"><strong>${Number(duel.eventIndex || 0).toFixed(1)}</strong><small>Index · ${compactPoints(duel.weightedAverage || 0)} weighted avg</small></td>
       <td class="numeric event-index-cell"><strong>${Number(ruler.eventIndex || 0).toFixed(1)}</strong><small>Index · ${compactPoints(ruler.averageCreditedScore || 0)} avg · ${Number(ruler.playedWeeks || 0)}/${Number(ruler.eligibleWeeks || 0)} weeks</small></td>
-      <td class="numeric event-index-cell pending"><strong>Pending</strong><small>${pct(weights.glory_war)} reserved</small></td>
+      <td class="numeric event-index-cell"><strong>${glory ? Number(glory.eventIndex || 0).toFixed(1) : "—"}</strong><small>${glory ? `Index · ${compactPoints(glory.averageCreditedScore || 0)} avg · ${Number(glory.playedEvents || 0)}/${Number(glory.eligibleEvents || 0)} events` : "No recorded index"}</small></td>
     </tr>`;
   }).join('')}</tbody></table>`;
-}
-
-function ensureProvisionalBanner(main, data) {
-  main.querySelector('.combined-provisional-banner')?.remove();
-  if (!data.contribution?.provisional) return;
-  const panel = main.querySelector('#participation-table')?.closest('.panel');
-  if (!panel) return;
-  const banner = document.createElement('div');
-  banner.className = 'combined-provisional-banner';
-  banner.innerHTML = `<strong>Combined score is provisional.</strong><span>Alliance Duel and State Ruler are live. Glory War's ${pct(data.contribution?.weights?.glory_war)} share is reserved at zero until its scoring model is finalized, so the existing event scores will not be reweighted later.</span>`;
-  panel.querySelector('.panel-head')?.insertAdjacentElement('afterend', banner);
 }
 
 async function enhanceCombinedGuide() {

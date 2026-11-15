@@ -1,85 +1,32 @@
 import './app-v082.js';
+import { getSessionUser } from './app.js';
 
 let scheduled = false;
-let busy = false;
-let cachedUser = null;
-let cachedAt = 0;
-let userPromise = null;
-
 const observer = new MutationObserver(schedule);
 observer.observe(document.getElementById('app'), { childList: true, subtree: true });
-window.addEventListener('hashchange', () => {
-  cachedAt = 0;
-  schedule();
-});
-window.addEventListener('popstate', () => {
-  cachedAt = 0;
-  schedule();
-});
+window.addEventListener('hashchange', schedule);
+window.addEventListener('popstate', schedule);
 schedule();
 
 function schedule() {
   if (scheduled) return;
   scheduled = true;
-  requestAnimationFrame(() => setTimeout(async () => {
+  requestAnimationFrame(() => setTimeout(() => {
     scheduled = false;
-    await repairMyRank();
+    repairMyRank();
   }, 70));
 }
 
-async function api(url) {
-  const response = await fetch(url, {
-    cache: 'no-store',
-    credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-  });
-  let data = {};
-  try { data = await response.json(); } catch (_) {}
-  if (!response.ok || data.ok === false) throw new Error(data.error || `Request failed (${response.status})`);
-  return data;
-}
-
-async function currentUser(force = false) {
-  const fresh = cachedUser && !force && (Date.now() - cachedAt) < 2000;
-  if (fresh) return cachedUser;
-  if (!userPromise) {
-    userPromise = api('/api/auth/me')
-      .then(data => {
-        cachedUser = data.user || null;
-        cachedAt = Date.now();
-        return cachedUser;
-      })
-      .catch(() => null)
-      .finally(() => { userPromise = null; });
-  }
-  return userPromise;
-}
-
-async function repairMyRank() {
-  if (busy) return;
+function repairMyRank() {
   const main = document.getElementById('main');
-  if (!main || !isRankingPage(main)) return;
-  busy = true;
-  try {
-    const user = await currentUser();
-    if (!user) return;
+  const user = getSessionUser();
+  if (!main || !isRankingPage(main) || !user || user.isGuest) return;
 
-    if (user.isGuest) {
-      clearMyRankUi(main);
-      return;
-    }
-
-    const tables = rankingTables(main);
-    if (!tables.length) return;
-
-    clearStaleDecorations(main, user);
-    for (const table of tables) {
-      const row = findMyRow(table, user);
-      if (row) decorateMyRow(row);
-      mountOrRepairJumpButton(table, user);
-    }
-  } finally {
-    busy = false;
+  clearStaleDecorations(main, user);
+  for (const table of rankingTables(main)) {
+    const row = findMyRow(table, user);
+    if (row) decorateMyRow(row);
+    mountOrRepairJumpButton(table, user);
   }
 }
 
@@ -112,6 +59,7 @@ function findMyRow(table, user) {
     if (exact) return exact;
   }
 
+  if (publicId && table.querySelector('tbody tr[data-player]')) return null;
   const wanted = normalize(user.name);
   if (!wanted) return null;
   return [...table.querySelectorAll('tbody tr')].find(row => {
@@ -138,7 +86,7 @@ function decorateMyRow(row) {
 function clearStaleDecorations(main, user) {
   const key = userKey(user);
   main.querySelectorAll('tr.is-current-player').forEach(row => {
-    if (row.dataset.myRankUser === key || findMyRow(row.closest('table'), user) === row) {
+    if (findMyRow(row.closest('table'), user) === row) {
       row.dataset.myRankUser = key;
       return;
     }
@@ -146,15 +94,6 @@ function clearStaleDecorations(main, user) {
     row.removeAttribute('aria-current');
     row.querySelector('.you-badge')?.remove();
     delete row.dataset.myRankUser;
-  });
-}
-
-function clearMyRankUi(main) {
-  main.querySelectorAll('.my-rank-button').forEach(button => button.remove());
-  main.querySelectorAll('tr.is-current-player').forEach(row => {
-    row.classList.remove('is-current-player', 'my-rank-pulse');
-    row.removeAttribute('aria-current');
-    row.querySelector('.you-badge')?.remove();
   });
 }
 
@@ -191,18 +130,13 @@ function jumpToMyRow(panel, user, button) {
   button.disabled = true;
   button.textContent = 'Finding you...';
 
-  const attempt = async (remaining = 10) => {
-    const liveMain = document.getElementById('main');
-    const tables = liveMain ? rankingTables(liveMain) : [];
+  const attempt = (remaining = 10) => {
+    if (!panel.isConnected || getSessionUser() !== user) return;
+    const tables = rankingTables(panel);
     let row = null;
     for (const table of tables) {
       row = findMyRow(table, user);
       if (row) break;
-    }
-
-    if (!row && remaining === 5) {
-      const refreshed = await currentUser(true);
-      if (refreshed && !refreshed.isGuest) user = refreshed;
     }
 
     if (row) {

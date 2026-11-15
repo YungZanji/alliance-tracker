@@ -50,13 +50,7 @@ jobs:
           set -euo pipefail
           LIST=$(npx wrangler d1 list --json)
           DB_ID=$(printf '%s' "$LIST" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s);const d=a.find(x=>x.name==='alliance-tracker-db');if(d)process.stdout.write(String(d.uuid||d.id||''));})")
-          if [ -z "$DB_ID" ]; then
-            echo "Creating alliance-tracker-db..."
-            npx wrangler d1 create alliance-tracker-db --location wnam
-            LIST=$(npx wrangler d1 list --json)
-            DB_ID=$(printf '%s' "$LIST" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s);const d=a.find(x=>x.name==='alliance-tracker-db');if(d)process.stdout.write(String(d.uuid||d.id||''));})")
-          fi
-          test -n "$DB_ID" || (echo "Could not resolve alliance-tracker-db" && exit 1)
+          test -n "$DB_ID" || (echo "Existing alliance-tracker-db not found; stopping deployment" && exit 1)
           node scripts/render-wrangler.mjs "$DB_ID"
 
       - name: Apply D1 migrations
@@ -86,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5 6 7 8 9; do
-            if curl --fail --silent --show-error --max-time 15 https://wdz.state305.cc/api/health; then
+            if curl --fail --silent --show-error --max-time 15 https://wdz.state305.cc/api/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);if(!r.ok||r.status==='unavailable')process.exit(1)})"; then
               echo
               echo "Alliance Tracker is live."
               exit 0

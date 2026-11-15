@@ -1,9 +1,7 @@
+import { getSessionUser } from './app.js';
+
 const appRoot = document.getElementById('app');
 let scheduled = false;
-let cachedUser = null;
-let cachedAt = 0;
-let userPromise = null;
-
 const EVENT_WEIGHTS = [
   { key: 'alliance_duel', label: 'Alliance Duel' },
   { key: 'state_ruler', label: 'State Ruler' },
@@ -12,23 +10,21 @@ const EVENT_WEIGHTS = [
 
 const observer = new MutationObserver(schedule);
 observer.observe(appRoot, { childList: true, subtree: true });
-window.addEventListener('hashchange', () => { cachedAt = 0; schedule(); });
-window.addEventListener('popstate', () => { cachedAt = 0; schedule(); });
+window.addEventListener('hashchange', schedule);
+window.addEventListener('popstate', schedule);
 schedule();
 
 function schedule() {
   if (scheduled) return;
   scheduled = true;
-  requestAnimationFrame(() => setTimeout(async () => {
+  requestAnimationFrame(() => setTimeout(() => {
     scheduled = false;
     if (document.querySelector('.login-page')) {
-      cachedUser = null;
-      cachedAt = 0;
       sessionStorage.removeItem('admin-unlock-seen');
       closeAdminUnlock();
       return;
     }
-    const user = await currentUser().catch(() => null);
+    const user = getSessionUser();
     if (!user) return;
     mountAdminUnlockEntry(user);
     if (user.isAdmin) {
@@ -46,18 +42,6 @@ async function api(url, options = {}) {
   try { data = await response.json(); } catch (_) {}
   if (!response.ok || data.ok === false) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
-}
-
-async function currentUser(force = false) {
-  if (!force && cachedUser && Date.now() - cachedAt < 2000) return cachedUser;
-  if (!userPromise) {
-    userPromise = api('/api/auth/me').then(data => {
-      cachedUser = data.user || null;
-      cachedAt = Date.now();
-      return cachedUser;
-    }).finally(() => { userPromise = null; });
-  }
-  return userPromise;
 }
 
 function mountAdminUnlockEntry(user) {

@@ -51,7 +51,7 @@ assert.match(worker, /winBonus: false/);
 assert.match(worker, /gloryWarStatus: 'active'/);
 assert.match(ui, /contribution-glory-baseline/);
 assert.match(ui, /gloryWarBaseline/);
-assert.match(ui, /playedEvents/);
+assert.match(fs.readFileSync(new URL('../public/app-v076.js', import.meta.url), 'utf8'), /playedEvents/);
 assert.match(ui, /genuine missed completed event is zero/);
 assert.match(index, /app-v086\.js\?v=117/);
 // Production normally uses the compatible scoring chain. During intentional

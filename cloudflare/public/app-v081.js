@@ -1,4 +1,5 @@
 import './app-v080.js';
+import { getSessionUser } from './app.js';
 
 let scheduled=false,adminBusy=false;
 const observer=new MutationObserver(schedule);
@@ -23,10 +24,16 @@ function mountGuestLogin(){
   box.querySelector('#guest-password')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();submitGuest();}});
 }
 
-async function mountGuestBanner(){
-  const shell=document.querySelector('.shell');
-  if(!shell||shell.querySelector('.guest-readonly-banner'))return;
-  try{const data=await api('/api/auth/me');if(!data.user?.isGuest)return;const header=shell.querySelector('.site-header'),banner=document.createElement('div');banner.className='guest-readonly-banner';banner.innerHTML=`<span><b>GUEST VIEW</b> Read-only preview access</span><small>Expires ${dateLong(data.user.guestExpiresAt)}</small>`;header?.insertAdjacentElement('afterend',banner);const pill=shell.querySelector('.account-pill');if(pill)pill.textContent=`Guest · ${data.user.name}`;}catch(_){}
+function mountGuestBanner() {
+  const shell = document.querySelector('.shell');
+  const user = getSessionUser();
+  if (!user?.isGuest || !shell || shell.querySelector('.guest-readonly-banner')) return;
+  const banner = document.createElement('div');
+  banner.className = 'guest-readonly-banner';
+  banner.innerHTML = `<span><b>GUEST VIEW</b> Read-only preview access</span><small>Expires ${dateLong(user.guestExpiresAt)}</small>`;
+  shell.querySelector('.site-header')?.insertAdjacentElement('afterend', banner);
+  const pill = shell.querySelector('.account-pill');
+  if (pill) pill.textContent = `Guest · ${user.name}`;
 }
 
 async function mountGuestAdmin(){

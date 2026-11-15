@@ -1,7 +1,6 @@
 import './app-v085.js?v=116';
 
 let scheduled = false;
-let leaderboardBusy = false;
 let guideBusy = false;
 let adminBusy = false;
 
@@ -16,7 +15,6 @@ function schedule() {
   requestAnimationFrame(() => setTimeout(async () => {
     scheduled = false;
     await Promise.allSettled([
-      enhanceGloryContributionLeaderboard(),
       enhanceGloryContributionGuide(),
       enhanceGloryContributionAdmin(),
     ]);
@@ -33,45 +31,6 @@ async function api(url, options = {}) {
   try { data = await response.json(); } catch (_) {}
   if (!response.ok || data.ok === false) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
-}
-
-async function enhanceGloryContributionLeaderboard() {
-  if (location.hash !== '#leaderboards' || leaderboardBusy) return;
-  const host = document.getElementById('participation-table');
-  const table = host?.querySelector('.combined-contribution-table');
-  if (!host || !table || host.dataset.gloryContributionV117 === '1') return;
-
-  leaderboardBusy = true;
-  try {
-    const data = await api('/api/participation');
-    if (location.hash !== '#leaderboards') return;
-    const currentHost = document.getElementById('participation-table');
-    const currentTable = currentHost?.querySelector('.combined-contribution-table');
-    if (!currentHost || !currentTable) return;
-
-    const playerById = new Map((data.players || []).map(row => [String(row.publicId || ''), row]));
-    const gloryColumn = [...currentTable.querySelectorAll('thead th')].findIndex(node => node.textContent.trim() === 'Glory War');
-    if (gloryColumn < 0) return;
-
-    currentTable.querySelectorAll('tbody tr[data-player]').forEach(row => {
-      const player = playerById.get(String(row.dataset.player || ''));
-      const glory = player?.components?.glory_war || {};
-      const cell = row.children[gloryColumn];
-      if (!cell) return;
-      cell.className = 'numeric event-index-cell';
-      cell.innerHTML = `<strong>${Number(glory.eventIndex || 0).toFixed(1)}</strong><small>Index · ${compactPoints(glory.averageCreditedScore || 0)} avg · ${Number(glory.playedEvents || 0)}/${Number(glory.eligibleEvents || 0)} events</small>`;
-    });
-
-    const main = document.getElementById('main');
-    const subtitle = main?.querySelector('.page-head p');
-    if (subtitle) subtitle.textContent = 'Alliance Duel, State Ruler, and Glory War performance on one shared Contribution Index.';
-    main?.querySelector('.combined-provisional-banner')?.remove();
-    currentHost.dataset.gloryContributionV117 = '1';
-  } catch (error) {
-    console.warn('Could not activate Glory War Contribution leaderboard:', error);
-  } finally {
-    leaderboardBusy = false;
-  }
 }
 
 async function enhanceGloryContributionGuide() {
