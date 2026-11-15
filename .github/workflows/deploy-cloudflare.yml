@@ -56,12 +56,15 @@ jobs:
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply alliance-tracker-db --remote --config wrangler.generated.jsonc
 
-      - name: Set desktop upload token
+      - name: Deploy Worker with desktop upload token
         shell: bash
-        run: printf '%s' "$ALLIANCE_UPLOAD_TOKEN" | npx wrangler secret put UPLOAD_TOKEN --config wrangler.generated.jsonc
-
-      - name: Deploy Worker
-        run: npx wrangler deploy --config wrangler.generated.jsonc
+        run: |
+          set -euo pipefail
+          umask 077
+          secret_file=$(mktemp "${RUNNER_TEMP}/alliance-secrets.XXXXXX.json")
+          trap 'rm -f -- "$secret_file"' EXIT
+          node -e 'process.stdout.write(JSON.stringify({UPLOAD_TOKEN:process.env.ALLIANCE_UPLOAD_TOKEN}))' > "$secret_file"
+          npx wrangler deploy --config wrangler.generated.jsonc --secrets-file "$secret_file"
 
       - name: Attach production domain
         shell: bash
