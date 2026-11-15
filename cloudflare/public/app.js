@@ -11,6 +11,7 @@ const state = {
   admin: null,
   logins: [],
   route: 'home',
+  navigation: 0,
   selectedCycle: '',
   selectedWeek: 1,
   duelMetric: 'weekly',
@@ -33,12 +34,15 @@ const dec = value => Number(value || 0).toFixed(1);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const when = value => value ? new Date(value).toLocaleString() : 'Not captured';
 
-boot();
+export function getSessionUser() { return state.user; }
+
+applyTheme(localStorage.getItem('alliance-theme') || 'dark');
+if (location.hash !== '#preview') boot();
 
 async function boot() {
-  applyTheme(localStorage.getItem('alliance-theme') || 'dark');
   try {
     const data = await api('/api/auth/me', { allow401: true });
+    if (location.hash === '#preview') return;
     if (data?.user) {
       state.user = data.user;
       renderShell();
@@ -47,7 +51,7 @@ async function boot() {
       renderLogin();
     }
   } catch (_) {
-    renderLogin();
+    if (location.hash !== '#preview') renderLogin();
   }
   window.addEventListener('hashchange', () => state.user && navigate(location.hash.slice(1) || initialRoute(), false));
   window.addEventListener('popstate', () => state.user && navigate(initialRoute(), false));
@@ -213,6 +217,7 @@ function navigate(route, push = true) {
   const allowed = ['home', 'leaderboards', 'duel', 'state-ruler', 'glory-war', 'canyon', 'admin'];
   if (!allowed.includes(route) || (route === 'admin' && !state.user?.isAdmin)) route = 'home';
   state.route = route;
+  state.navigation++;
   if (push) {
     const target = route === 'canyon'
       ? '/canyon'
@@ -473,8 +478,10 @@ function metric(label, value, note) {
 }
 
 async function renderParticipation() {
+  const navigation = state.navigation;
   try {
     const data = await ensureParticipation(true);
+    if (navigation !== state.navigation || !state.user) return;
     const availableLabels = data.weights.filter(w => data.availability[w.eventType]).map(w => w.label).join(' + ') || 'No event data';
     document.getElementById('main').innerHTML = `
       ${pageHead('Alliance Leaderboards', 'A normalized participation index that can combine events with very different raw scoring scales.', `<span class="badge badge-blue">${esc(availableLabels)}</span>`)}
@@ -490,7 +497,7 @@ async function renderParticipation() {
     };
     render('');
     document.getElementById('participation-search').addEventListener('input', event => render(event.target.value));
-  } catch (err) { pageError(err); }
+  } catch (err) { if (navigation === state.navigation) pageError(err); }
 }
 
 function participationTable(rows, availability) {

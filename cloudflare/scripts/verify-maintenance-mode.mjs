@@ -5,7 +5,7 @@ const source = fs.readFileSync(new URL('../src/maintenance-entry.js', import.met
 const config = fs.readFileSync(new URL('../wrangler.template.jsonc', import.meta.url), 'utf8');
 const worker = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
-assert.match(config, /"main":\s*"\.\/src\/maintenance-entry\.js"/);
+assert.match(config, /"main":\s*"\.\/src\/scoring-entry-v164\.js"/);
 assert.match(config, /"run_worker_first":\s*true/);
 assert.match(config, /"database_name":\s*"alliance-tracker-db"/);
 assert.match(config, /"triggers":\s*\{\s*"crons":\s*\[\s*\]\s*\}/);
@@ -30,4 +30,4 @@ const robots = await worker.default.fetch(new Request('https://wdz.state305.cc/r
 assert.equal(robots.status, 200);
 assert.match(await robots.text(), /Allow: \/\n/);
 
-console.log('Verified maintenance page, closed APIs, health check, D1 binding, and explicit Cron Trigger removal.');
+console.log('Verified production entry point, existing D1 binding, no cron, and standby maintenance behavior.');
