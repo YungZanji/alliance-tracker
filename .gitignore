@@ -28,3 +28,6 @@ cloudflare/wrangler.generated.jsonc
 .idea/
 .DS_Store
 Thumbs.db
+
+# Isolated 36C deployment artifact (contains the selected D1 UUID)
+cloudflare/.build-36c/
