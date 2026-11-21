@@ -1,0 +1,65 @@
+name: Deploy 36C tracker
+on:
+  workflow_dispatch:
+    inputs:
+      create_database:
+        description: 'Create the NEW alliance-tracker-36c-db if it does not exist'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: deploy-36c-tracker
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CREATE_DATABASE: ${{ inputs.create_database }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run check
+      - name: Verify clean baseline
+        run: |
+          python3 scripts/build-clean-baseline.py
+          git diff --exit-code -- deployments/36c/migrations/0001_clean_schema.sql
+      - name: Resolve only the 36C database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          find_db() {
+            npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s).filter(x=>x.name==="alliance-tracker-36c-db");if(a.length>1)process.exit(1);if(a[0])process.stdout.write(a[0].uuid||a[0].id)})'
+          }
+          DB_ID=$(find_db)
+          if [ -z "$DB_ID" ]; then
+            test "$CREATE_DATABASE" = "true" || { echo "36C database missing. Run with create_database enabled."; exit 1; }
+            npx wrangler d1 create alliance-tracker-36c-db
+            DB_ID=$(find_db)
+          fi
+          test -n "$DB_ID"
+          node scripts/build-36c.mjs "$DB_ID"
+      - name: Apply only clean 36C migrations
+        run: npx wrangler d1 migrations apply alliance-tracker-36c-db --remote --config .build-36c/wrangler.jsonc
+      - name: Deploy 36C
+        run: npx wrangler deploy --config .build-36c/wrangler.jsonc
+      - name: Attach 360.state261.app to 36C only
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains"             -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             -H "Content-Type: application/json"             --data '{"hostname":"360.state261.app","service":"alliance-tracker-36c","zone_name":"state261.app"}' |
+            node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.success){console.error(JSON.stringify(r.errors));process.exit(1)}})'
+      - name: Verify deployment identity
+        run: |
+          curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 5 https://360.state261.app/api/health |
+            node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.ok||r.profileId!=="36c-261"||r.uploadsEnabled!==false)process.exit(1)})'
