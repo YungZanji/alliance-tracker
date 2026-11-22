@@ -1,6 +1,6 @@
 # 36C / State 261 initial deployment
 
-Domain: https://360.state261.app
+Domain: https://36c.state261.app
 Worker: alliance-tracker-36c
 D1: alliance-tracker-36c-db
 Branch: feature/36c-state261

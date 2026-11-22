@@ -53,13 +53,13 @@ jobs:
         run: npx wrangler d1 migrations apply alliance-tracker-36c-db --remote --config .build-36c/wrangler.jsonc
       - name: Deploy 36C
         run: npx wrangler deploy --config .build-36c/wrangler.jsonc
-      - name: Attach 360.state261.app to 36C only
+      - name: Attach 36c.state261.app to 36C only
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains"             -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             -H "Content-Type: application/json"             --data '{"hostname":"360.state261.app","service":"alliance-tracker-36c","zone_name":"state261.app"}' |
+          curl --fail-with-body --silent --show-error             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains"             -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             -H "Content-Type: application/json"             --data '{"hostname":"36c.state261.app","service":"alliance-tracker-36c","zone_name":"state261.app"}' |
             node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.success){console.error(JSON.stringify(r.errors));process.exit(1)}})'
       - name: Verify deployment identity
         run: |
-          curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 5 https://360.state261.app/api/health |
+          curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 5 https://36c.state261.app/api/health |
             node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.ok||r.profileId!=="36c-261"||r.uploadsEnabled!==false)process.exit(1)})'
