@@ -30,7 +30,12 @@ export default {
       return Response.json({ ok: true, profileId: '36c-261', alliance: '36C',
         stateId: 261, uploadsEnabled, status: uploadsEnabled ? 'duel_sync_ready' : 'awaiting_capture_setup' });
     }
-    // First launch deliberately cannot ingest unvalidated or old WDZ sessions.
+    // Existing portal authentication enforces administrator credentials and sessions.
+    const adminAuth = ['/api/auth/admin-login', '/api/auth/admin-logout', '/api/auth/admin-password'].includes(url.pathname);
+    if (env.ADMIN_PASSWORD_PEPPER && (url.pathname.startsWith('/api/admin/') || (adminAuth && request.method === 'POST'))) {
+      return portal.fetch(request, env, ctx);
+    }
+    // Keep other legacy writes disabled.
     if (request.method !== 'GET' && request.method !== 'HEAD' &&
         !['/api/auth/login', '/api/auth/logout', '/api/auth/guest-login'].includes(url.pathname)) {
       return Response.json({ ok: false, error: '36C capture and administrator setup is pending.' }, { status: 503 });
