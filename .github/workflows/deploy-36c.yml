@@ -1,8 +1,5 @@
 name: Deploy 36C tracker
 on:
-  push:
-    branches: [main]
-    paths: [cloudflare/scripts/provision-36c-owner.mjs]
   workflow_dispatch:
     inputs:
       create_database:
@@ -66,6 +63,3 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 5 https://36c.state261.app/api/health |
             node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.ok||r.profileId!=="36c-261"||typeof r.uploadsEnabled !== "boolean")process.exit(1)})'
-      - name: Provision verified 36C owner
-        if: github.event_name == 'push'
-        run: node scripts/provision-36c-owner.mjs
