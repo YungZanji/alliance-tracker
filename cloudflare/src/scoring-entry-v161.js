@@ -134,6 +134,9 @@ async function handleAdminLogin(request, env, ctx, owner = null) {
 async function handleAdminPasswordChange(request, env, ctx) {
   const identity = await adminIdentity(request, env, ctx);
   if (identity.response) return identity.response;
+  if (identity.credential?.password_hash === '36c-worker-secret') {
+    return json({ ok: false, error: 'Rotate the owner password in the 36C Worker secrets.' }, 409);
+  }
   if (!identity.databaseAdmin || !identity.credential) {
     return json({ ok: false, error: 'Administrator access is not enabled for this account.' }, 403);
   }
@@ -225,6 +228,11 @@ async function verifyPassword(password, credential, env) {
   const stored = String(credential.password_hash || '');
   const saltBase64 = String(credential.password_salt || '');
 
+  if (stored === '36c-worker-secret') {
+    const secret = env.ADMIN_PASSWORD_PEPPER;
+    if (env.PROFILE_ID !== '36c-261' || typeof secret !== 'string' || secret.length < 16 || /^\d+$/.test(secret.replace(/\s/g, ''))) return false;
+    return timingSafeEqual(await sha256(password), await sha256(secret));
+  }
   if (stored.startsWith(HMAC_PREFIX)) {
     const actual = await deriveHmacPassword(password, saltBase64, env);
     return timingSafeEqual(actual, stored.slice(HMAC_PREFIX.length));

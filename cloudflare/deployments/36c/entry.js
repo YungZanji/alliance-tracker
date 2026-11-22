@@ -35,6 +35,13 @@ export default {
       return Response.json({ ok: true, profileId: '36c-261', alliance: '36C',
         stateId: 261, uploadsEnabled, status: uploadsEnabled ? 'duel_sync_ready' : 'awaiting_capture_setup' });
     }
+    if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+      const response = await portal.fetch(request, env, ctx);
+      if (!response.ok) return response;
+      const headers = new Headers(response.headers);
+      headers.append('set-cookie', 'at_admin=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax');
+      return new Response(response.body, { status: response.status, headers });
+    }
     // Existing portal authentication enforces administrator credentials and sessions.
     const adminAuth = ['/api/auth/admin-login', '/api/auth/admin-logout', '/api/auth/admin-password'].includes(url.pathname);
     if (env.ADMIN_PASSWORD_PEPPER && (url.pathname.startsWith('/api/admin/') || (adminAuth && request.method === 'POST'))) {
