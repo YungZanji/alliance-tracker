@@ -39,6 +39,41 @@ for (const dir of ['src', 'public']) {
       if (!text.includes(signature)) throw new Error('Sync player insert changed');
       text = text.replace(signature, 'first_seen_at, last_seen_at, login_enabled)\n      VALUES(?,?,?,?,?,?,?,?,?,?,0)');
     }
+    if (file === 'app.js') {
+      const hook = "  document.getElementById('login-form').addEventListener('submit', login);";
+      if (!text.includes(hook)) throw new Error('Player sign-in hook changed');
+      text = text.replace(hook, hook + "\n  add36cOwnerLogin();");
+      text += `
+function add36cOwnerLogin() {
+  const panel = document.createElement('details');
+  panel.className = 'login-card';
+  panel.innerHTML = '<summary>Administrator sign-in</summary><form><label for="owner-password">Administrator password</label><input id="owner-password" class="input" type="password" autocomplete="current-password" required><button class="btn btn-primary" type="submit">Sign in as administrator</button><p role="status"></p></form>';
+  document.getElementById('login-form').after(panel);
+  const form = panel.querySelector('form');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    const input = form.querySelector('input');
+    const status = form.querySelector('[role=status]');
+    button.disabled = true;
+    status.textContent = '';
+    try {
+      await api('/api/auth/owner-login', { method: 'POST', allow401: true, body: JSON.stringify({ password: input.value }) });
+      const verified = await api('/api/auth/me', { allow401: true });
+      if (!verified?.user?.isAdmin) throw new Error('Your browser did not keep the administrator session.');
+      state.user = verified.user;
+      renderShell();
+      navigate('admin');
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      input.value = '';
+      button.disabled = false;
+    }
+  });
+}
+`;
+    }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
       text = text.replace(/async function bootstrapAdmin\(env\) \{[\s\S]*?\n\}/,

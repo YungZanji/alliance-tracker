@@ -44,8 +44,26 @@ export default {
   }
 };
 
-async function handleAdminLogin(request, env, ctx) {
-  const identity = await adminIdentity(request, env, ctx);
+export async function handleOwnerLogin(request, env, ctx) {
+  try {
+    const { results } = await env.DB.prepare(`
+      SELECT p.uid, c.password_salt, c.password_hash
+      FROM players p LEFT JOIN admin_credentials c ON c.uid=p.uid
+      WHERE p.is_admin=1 LIMIT 2
+    `).all();
+    if (results.length !== 1 || !results[0].password_hash || !env.ADMIN_PASSWORD_PEPPER) {
+      return json({ ok: false, error: 'Owner sign-in is not configured.' }, 503);
+    }
+    const credential = results[0];
+    return await handleAdminLogin(request, env, ctx, { uid: credential.uid, databaseAdmin: true, credential });
+  } catch (error) {
+    console.error('Owner sign-in failed', error);
+    return json({ ok: false, error: 'Owner sign-in failed. Please try again.' }, 500);
+  }
+}
+
+async function handleAdminLogin(request, env, ctx, owner = null) {
+  const identity = owner || await adminIdentity(request, env, ctx);
   if (identity.response) return identity.response;
   if (!identity.databaseAdmin || !identity.credential) {
     return json({ ok: false, error: 'Administrator access is not enabled for this account.' }, 403);
@@ -81,17 +99,31 @@ async function handleAdminLogin(request, env, ctx) {
     await upgradeCredentialToHmac(env, identity.uid, password, identity.credential.password_salt);
   }
 
+  let memberResponse = null;
+  let rawUser = identity.rawUser;
+  if (owner) {
+    const loginUrl = new URL('/api/auth/login', request.url);
+    const loginRequest = new Request(loginUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'cf-connecting-ip': clientIp(request), 'user-agent': agent },
+      body: JSON.stringify({ uid: identity.uid })
+    });
+    memberResponse = await portal.fetch(loginRequest, env, ctx);
+    if (!memberResponse.ok) return memberResponse;
+    rawUser = (await memberResponse.json()).user;
+  }
   await recordAdminAttempt(env, identity.uid, 1, 'admin_login', ipHash, agent);
   const session = await createAdminSession(env, identity.uid, ipHash, agent);
   const headers = new Headers({
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store'
   });
+  if (memberResponse) headers.append('set-cookie', memberResponse.headers.get('set-cookie'));
   headers.append('set-cookie', adminSessionCookie(session.token, ADMIN_SESSION_HOURS * 3600));
   return new Response(JSON.stringify({
     ok: true,
     user: {
-      ...identity.rawUser,
+      ...rawUser,
       isAdmin: true,
       adminEligible: true,
       adminSessionExpiresAt: session.expiresAt

@@ -1,3 +1,4 @@
+import { handleOwnerLogin } from './src/scoring-entry-v161.js';
 import portal from './src/scoring-entry-v164.js';
 
 const DUEL_DATASETS = new Set([
@@ -9,6 +10,10 @@ const ALLIANCE_ID = '0beb659cf5274a96952d91401ae41698';
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/auth/owner-login' && request.method === 'POST') {
+      if (!env.ADMIN_PASSWORD_PEPPER) return Response.json({ ok: false, error: 'Owner sign-in is not configured.' }, { status: 503 });
+      return handleOwnerLogin(request, env, ctx);
+    }
     const uploadsEnabled = Boolean(env.UPLOAD_TOKEN_36C);
     if (url.pathname === '/api/sync' && request.method === 'POST') {
       if (!uploadsEnabled) return Response.json({ ok: false, error: '36C sync is not configured.' }, { status: 503 });
