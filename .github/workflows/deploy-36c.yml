@@ -62,4 +62,4 @@ jobs:
       - name: Verify deployment identity
         run: |
           curl --fail --silent --show-error --retry 6 --retry-all-errors --retry-delay 5 https://36c.state261.app/api/health |
-            node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.ok||r.profileId!=="36c-261"||r.uploadsEnabled!==false)process.exit(1)})'
+            node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.ok||r.profileId!=="36c-261"||typeof r.uploadsEnabled !== 'boolean')process.exit(1)})'

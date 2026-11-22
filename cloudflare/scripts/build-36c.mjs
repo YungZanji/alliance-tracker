@@ -34,6 +34,11 @@ for (const dir of ['src', 'public']) {
       text = "import { renderCanyonGuide } from './canyon-guide.js';\n" +
         text.replace(entry, "function renderCanyon() { renderCanyonGuide(document.getElementById('main')); }\nasync function renderLegacyCanyon() {");
     }
+    if (file === 'index.js') {
+      const signature = 'first_seen_at, last_seen_at)\n      VALUES(?,?,?,?,?,?,?,?,?,?)';
+      if (!text.includes(signature)) throw new Error('Sync player insert changed');
+      text = text.replace(signature, 'first_seen_at, last_seen_at, login_enabled)\n      VALUES(?,?,?,?,?,?,?,?,?,?,0)');
+    }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
       text = text.replace(/async function bootstrapAdmin\(env\) \{[\s\S]*?\n\}/,
