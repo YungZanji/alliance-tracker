@@ -65,7 +65,7 @@ async function handleCanyonMeta(request, env, ctx) {
   });
 
   const available = languages.filter(row => row.available);
-  const defaultLanguage = byCode.en ? 'en' : String(available[0]?.code || 'en');
+  const defaultLanguage = available.some(row => row.code === 'en') ? 'en' : String(available[0]?.code || 'en');
   const updatedAt = available.map(row => row.updatedAt).filter(Boolean).sort().at(-1) || '';
 
   return json({

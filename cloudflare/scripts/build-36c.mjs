@@ -20,6 +20,14 @@ for (const dir of ['src', 'public']) {
       .replaceAll('State305', 'State261')
       .replaceAll('WDZ', profile.allianceAbbr)
       .replace(/\b305\b/g, String(profile.stateId));
+    // Hide retired photo variants only in the 36C artifact, including direct image requests.
+    if (file === 'scoring-entry-v159.js' || file === 'app.js') {
+      const declaration = /const CANYON_LANGUAGES = (\[[\s\S]*?\]);/;
+      if (!declaration.test(text)) throw new Error('Canyon language declaration changed: ' + file);
+      text = text.replace(declaration, (_, list) =>
+        'const CANYON_LANGUAGES = ' + list + '.filter(({ code }) => !' +
+        JSON.stringify(profile.hiddenCanyonPhotoLanguages) + '.includes(code));');
+    }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
       text = text.replace(/async function bootstrapAdmin\(env\) \{[\s\S]*?\n\}/,

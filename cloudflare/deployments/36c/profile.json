@@ -5,5 +5,6 @@
   "hostname": "36c.state261.app",
   "workerName": "alliance-tracker-36c",
   "databaseName": "alliance-tracker-36c-db",
+  "hiddenCanyonPhotoLanguages": ["en", "th", "es", "nl"],
   "uploadsEnabled": false
 }
