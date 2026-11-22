@@ -28,6 +28,12 @@ for (const dir of ['src', 'public']) {
         'const CANYON_LANGUAGES = ' + list + '.filter(({ code }) => !' +
         JSON.stringify(profile.hiddenCanyonPhotoLanguages) + '.includes(code));');
     }
+    if (file === 'app.js') {
+      const entry = "async function renderCanyon() {";
+      if (!text.includes(entry)) throw new Error('Canyon page entry changed');
+      text = "import { renderCanyonGuide } from './canyon-guide.js';\n" +
+        text.replace(entry, "function renderCanyon() { renderCanyonGuide(document.getElementById('main')); }\nasync function renderLegacyCanyon() {");
+    }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
       text = text.replace(/async function bootstrapAdmin\(env\) \{[\s\S]*?\n\}/,
@@ -40,6 +46,7 @@ for (const dir of ['src', 'public']) {
     fs.writeFileSync(target, text);
   }
 }
+fs.copyFileSync(path.join(root, 'deployments/36c/canyon-guide.js'), path.join(out, 'public/canyon-guide.js'));
 fs.cpSync(path.join(root, 'deployments/36c/migrations'), path.join(out, 'migrations'), { recursive: true });
 fs.copyFileSync(path.join(root, 'deployments/36c/entry.js'), path.join(out, 'entry.js'));
 fs.writeFileSync(path.join(out, 'wrangler.jsonc'), JSON.stringify({
