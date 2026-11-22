@@ -29,7 +29,21 @@ export default {
           !rows.every(r => r?.allianceId === ALLIANCE_ID && r.allianceAbbr === '36C' && Number(r.serverId) === 261)) {
         return Response.json({ ok: false, error: 'Sync only the validated 36C State 261 Direct Duel session.' }, { status: 422 });
       }
-      return portal.fetch(request, { ...env, UPLOAD_TOKEN: env.UPLOAD_TOKEN_36C }, ctx);
+      // Opponent ranking rows are used in memory to calculate team totals; only
+      // primary alliance player rows are persisted by the Duel ingest pipeline.
+      const own = r => r?.allianceId === ALLIANCE_ID && r.allianceAbbr === '36C' && Number(r.serverId) === 261;
+      for (const snapshot of snapshots) {
+        if (snapshot.dataset === 'alliance_duel_rankings' &&
+            snapshot.rows?.some(row => row?.allianceAbbr === '36C' && !own(row))) {
+          return Response.json({ ok: false, error: 'Invalid 36C player identity.' }, { status: 422 });
+        }
+        if (snapshot.dataset === 'alliance_duel_results' && Array.isArray(snapshot.rows)) {
+          snapshot.rows = snapshot.rows.map(row => row?.mvp && !rows.some(member => String(member.uid) === String(row.mvp.uid)) ? { ...row, mvp: null } : row);
+        }
+      }
+      const headers = new Headers(request.headers);
+      headers.delete('content-length');
+      return portal.fetch(new Request(request.url, { method: 'POST', headers, body: JSON.stringify(body) }), { ...env, UPLOAD_TOKEN: env.UPLOAD_TOKEN_36C }, ctx);
     }
     if (url.pathname === '/api/health') {
       return Response.json({ ok: true, profileId: '36c-261', alliance: '36C',

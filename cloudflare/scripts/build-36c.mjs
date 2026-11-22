@@ -35,6 +35,7 @@ for (const dir of ['src', 'public']) {
         text.replace(entry, "function renderCanyon() { renderCanyonGuide(document.getElementById('main')); }\nasync function renderLegacyCanyon() {");
     }
     if (file === 'index.js') {
+      text = text.replace('FROM duel_weekly WHERE cycle_id=?', "FROM duel_weekly WHERE cycle_id=? AND alliance_abbr='36C' AND score>0");
       const signature = 'first_seen_at, last_seen_at)\n      VALUES(?,?,?,?,?,?,?,?,?,?)';
       if (!text.includes(signature)) throw new Error('Sync player insert changed');
       text = text.replace(signature, 'first_seen_at, last_seen_at, login_enabled)\n      VALUES(?,?,?,?,?,?,?,?,?,?,0)');
@@ -56,6 +57,9 @@ for (const dir of ['src', 'public']) {
       const call = loginMount + '();';
       if (!text.includes(call)) throw new Error('Login shortcut hook changed: ' + file);
       text = text.replace(call, '/* Front page shortcut omitted on 36C. */');
+    }
+    if (file === 'app.js') {
+      text = text.replace('captured in selected duel', '36C members scored in selected duel');
     }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
