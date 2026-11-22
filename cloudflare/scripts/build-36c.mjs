@@ -40,39 +40,23 @@ for (const dir of ['src', 'public']) {
       text = text.replace(signature, 'first_seen_at, last_seen_at, login_enabled)\n      VALUES(?,?,?,?,?,?,?,?,?,?,0)');
     }
     if (file === 'app.js') {
-      const hook = "  document.getElementById('login-form').addEventListener('submit', login);";
-      if (!text.includes(hook)) throw new Error('Player sign-in hook changed');
-      text = text.replace(hook, hook + "\n  add36cOwnerLogin();");
-      text += `
-function add36cOwnerLogin() {
-  const panel = document.createElement('details');
-  panel.className = 'login-card';
-  panel.innerHTML = '<summary>Administrator sign-in</summary><form><label for="owner-password">Administrator password</label><input id="owner-password" class="input" type="password" autocomplete="current-password" required><button class="btn btn-primary" type="submit">Sign in as administrator</button><p role="status"></p></form>';
-  document.getElementById('login-form').after(panel);
-  const form = panel.querySelector('form');
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
-    const button = form.querySelector('button');
-    const input = form.querySelector('input');
-    const status = form.querySelector('[role=status]');
-    button.disabled = true;
-    status.textContent = '';
-    try {
-      await api('/api/auth/owner-login', { method: 'POST', allow401: true, body: JSON.stringify({ password: input.value }) });
-      const verified = await api('/api/auth/me', { allow401: true });
-      if (!verified?.user?.isAdmin) throw new Error('Your browser did not keep the administrator session.');
-      state.user = verified.user;
-      renderShell();
-      navigate('admin');
-    } catch (error) {
-      status.textContent = error.message;
-    } finally {
-      input.value = '';
-      button.disabled = false;
+      const route = "    await api('/api/auth/login', {";
+      const readUid = "  const uid = String(uidInput?.value || '').replace(/[^0-9]/g, '');\n  if (uidInput) uidInput.value = uid;";
+      if (!text.includes(route) || !text.includes(readUid)) throw new Error('Player sign-in changed');
+      text = text
+        .replace('inputmode="numeric" autocomplete="off"', 'type="password" autocomplete="off"')
+        .replace(readUid, "  const value = String(uidInput?.value || '');\n  const uid = value.trim().replace(/\\s/g, '');\n  const ownerSignIn = !/^\\d+$/.test(uid);")
+        .replace(route, "    await api(ownerSignIn ? '/api/auth/owner-login' : '/api/auth/login', {")
+        .replace('body: JSON.stringify({ uid })', 'body: JSON.stringify(ownerSignIn ? { password: value } : { uid })')
+        .replace("    if (path === '/canyon') navigate('canyon');", "    if (ownerSignIn && verified.user.isAdmin) navigate('admin');\n    else if (path === '/canyon') navigate('canyon');")
+        .replace('error.textContent = err.message;', "error.textContent = ownerSignIn ? 'Sign-in failed. Check your entry and try again.' : err.message;")
+        .replace("    button.disabled = false;\n    button.textContent = 'Open Alliance Tracker';", "    if (ownerSignIn && uidInput) uidInput.value = '';\n    button.disabled = false;\n    button.textContent = 'Open Alliance Tracker';");
     }
-  });
-}
-`;
+    const loginMount = { 'app-v081.js': 'mountGuestLogin', 'app-v084.js': 'mountPreviewEntry' }[file];
+    if (dir === 'public' && loginMount) {
+      const call = loginMount + '();';
+      if (!text.includes(call)) throw new Error('Login shortcut hook changed: ' + file);
+      text = text.replace(call, '/* Front page shortcut omitted on 36C. */');
     }
     // Never bootstrap credentials or privileges from a legacy player name.
     if (file === 'entry.js') {
