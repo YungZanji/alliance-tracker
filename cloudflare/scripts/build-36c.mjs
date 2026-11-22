@@ -48,7 +48,6 @@ for (const dir of ['src', 'public']) {
         .replace(readUid, "  const value = String(uidInput?.value || '');\n  const uid = value.trim().replace(/\\s/g, '');\n  const ownerSignIn = !/^\\d+$/.test(uid);")
         .replace(route, "    await api(ownerSignIn ? '/api/auth/owner-login' : '/api/auth/login', {")
         .replace('body: JSON.stringify({ uid })', 'body: JSON.stringify(ownerSignIn ? { password: value } : { uid })')
-        .replace("    if (path === '/canyon') navigate('canyon');", "    if (ownerSignIn && verified.user.isAdmin) navigate('admin');\n    else if (path === '/canyon') navigate('canyon');")
         .replace('error.textContent = err.message;', "error.textContent = ownerSignIn ? 'Sign-in failed. Check your entry and try again.' : err.message;")
         .replace("    button.disabled = false;\n    button.textContent = 'Open Alliance Tracker';", "    if (ownerSignIn && uidInput) uidInput.value = '';\n    button.disabled = false;\n    button.textContent = 'Open Alliance Tracker';");
     }
