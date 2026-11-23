@@ -57,7 +57,8 @@ export async function readLeague(env) {
   const data=await env.DB.prepare('SELECT * FROM duel_group_members WHERE cycle_id=? AND duel_group=? AND cycle_week=1 ORDER BY league_position').bind(latest.cycle_id,latest.duel_group).all();
   const teams=data.results||[];
   const complete=teams.length===16&&new Set(teams.map(t=>t.alliance_id)).size===16&&new Set(teams.map(t=>Number(t.league_position))).size===16&&teams.every(t=>Number(t.league_position)>=1&&Number(t.league_position)<=16);
-  return {ok:true,group:latest.duel_group,cycleId:latest.cycle_id,currentWeek:latest.cycle_week,capturedAt:latest.captured_at,openingAvailable:complete,teams:complete?teams:[]};
+  const current=await env.DB.prepare('SELECT * FROM duel_group_members WHERE cycle_id=? AND duel_group=? AND cycle_week=? ORDER BY league_position').bind(latest.cycle_id,latest.duel_group,latest.cycle_week).all();
+  return {ok:true,latestTeams:current.results||[],group:latest.duel_group,cycleId:latest.cycle_id,currentWeek:latest.cycle_week,capturedAt:latest.captured_at,openingAvailable:complete,teams:complete?teams:[]};
 }
 export async function handleLeague(request,env,ctx,portal) {
   const auth=await portal.fetch(new Request(new URL('/api/auth/me',request.url),{headers:request.headers}),env,ctx);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {opponentStages,powerComparison} from './duel-league.js';
+import {opponentStages,leagueMarkup} from './duel-league.js';
 import {readLeague,handleLeague} from './catalog-power.js';
 const owner='0beb659cf5274a96952d91401ae41698';
 const teams=Array.from({length:16},(_,i)=>({alliance_id:i===4?owner:String(i),league_position:i+1}));
@@ -11,13 +11,8 @@ for(let i=0;i<16;i++){
  assert.equal(new Set(opponents.map(t=>t.alliance_id)).size,15);
  assert(!opponents.some(t=>t.alliance_id===owner));
 }
-const two=teams.slice(0,2),powers=two.map((t,i)=>({allianceId:t.alliance_id,status:'complete',totalMigratePower:100+i,scanId:'a'}));
-assert(powerComparison(two,powers).close);
-assert.equal(powerComparison(two,[{...powers[0],status:'partial'},powers[1]]),null);
-assert.equal(powerComparison(two,[powers[0],{...powers[1],scanId:'b'}]),null);
-assert.equal(powerComparison(two,[]),null);
 let field=teams;
-const env={DB:{prepare(sql){return {first:async()=>({cycle_id:'c',duel_group:'g',cycle_week:2}),bind(){assert(sql.includes('cycle_week=1'));return {all:async()=>({results:field})};}};}}};
+const env={DB:{prepare(sql){return {first:async()=>({cycle_id:'c',duel_group:'g',cycle_week:2}),bind(){assert(sql.includes('cycle_week='));return {all:async()=>({results:field})};}};}}};
 assert.equal((await readLeague(env)).openingAvailable,true);
 field=teams.slice(1);assert.equal((await readLeague(env)).openingAvailable,false);
 const denied=await handleLeague(new Request('https://example.test/api/duel/league'),env,{}, {fetch:async()=>Response.json({user:{isGuest:true}})});
@@ -27,4 +22,10 @@ assert(app.includes("navButton('duel-league', 'Duel League')"));
 assert(app.includes("if (['state-ruler','glory-war','guide'].includes(route))"));
 const guide=fs.readFileSync(new URL('../../.build-36c/public/app-v072.js',import.meta.url),'utf8');
 assert(guide.includes('function ensureGuideNav() { return;'));
-console.log('Verified bracket branches, incomplete/cross-scan power, opening seeds, guest denial and 36C feature routing.');
+const markup=leagueMarkup({teams:teams.map(t=>({...t,alliance_abbr:'<tag>',alliance_name:'Alliance & Name',server_id:261}))});
+assert(markup.includes('&lt;tag&gt;'));assert(markup.includes('Alliance &amp; Name'));assert(markup.includes('State 261'));
+const fresh=leagueMarkup({teams,latestTeams:[{alliance_id:'5',alliance_abbr:'NEW',alliance_name:'Latest name',server_id:999}]});
+assert(fresh.includes('Latest name'));assert(fresh.includes('State 999'));
+assert(!markup.includes('migration'));assert(!markup.includes('league-refresh'));
+const ui=fs.readFileSync(new URL('./duel-league.js',import.meta.url),'utf8');assert(!ui.includes('/league-power'));
+console.log('Verified compact cards, escaped alliance names, bracket branches, opening/latest field selection, guest denial and paused routes.');
