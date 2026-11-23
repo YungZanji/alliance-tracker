@@ -51,6 +51,21 @@ export async function collectLeaguePower(teams, token, getFetch=fetch) {
   if(JSON.stringify(after.snapshot)!==fingerprint)throw new Error('Active catalog scan changed during collection. Retry.');
   return {scanId,scannedAt:current.snapshot.completedAt||null,alliances};
 }
+export async function readLeague(env) {
+  const latest=await env.DB.prepare('SELECT cycle_id,duel_group,cycle_week,captured_at FROM duel_group_members ORDER BY captured_at DESC LIMIT 1').first();
+  if(!latest)return {ok:true,teams:[],openingAvailable:false};
+  const data=await env.DB.prepare('SELECT * FROM duel_group_members WHERE cycle_id=? AND duel_group=? AND cycle_week=1 ORDER BY league_position').bind(latest.cycle_id,latest.duel_group).all();
+  const teams=data.results||[];
+  const complete=teams.length===16&&new Set(teams.map(t=>t.alliance_id)).size===16&&new Set(teams.map(t=>Number(t.league_position))).size===16&&teams.every(t=>Number(t.league_position)>=1&&Number(t.league_position)<=16);
+  return {ok:true,group:latest.duel_group,cycleId:latest.cycle_id,currentWeek:latest.cycle_week,capturedAt:latest.captured_at,openingAvailable:complete,teams:complete?teams:[]};
+}
+export async function handleLeague(request,env,ctx,portal) {
+  const auth=await portal.fetch(new Request(new URL('/api/auth/me',request.url),{headers:request.headers}),env,ctx);
+  if(!auth.ok)return auth;
+  const session=await auth.json();
+  if(!session.user||session.user.isGuest)return reply({ok:false,error:'Member sign-in required.'},403);
+  try{return reply(await readLeague(env));}catch{return reply({ok:false,error:'League capture could not be loaded.'},502);}
+}
 export async function handleLeaguePower(request,env,ctx,portal){
   const authURL=new URL('/api/auth/me',request.url);
   const auth=await portal.fetch(new Request(authURL,{headers:request.headers}),env,ctx);

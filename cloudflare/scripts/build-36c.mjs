@@ -74,6 +74,28 @@ for (const dir of ['src', 'public']) {
   }
 }
 fs.copyFileSync(path.join(root, 'deployments/36c/canyon-guide.js'), path.join(out, 'public/canyon-guide.js'));
+fs.copyFileSync(path.join(root, 'deployments/36c/duel-league.js'), path.join(out, 'public/duel-league.js'));
+// Feature visibility is scoped to this deployment; source pages and scoring remain intact.
+const appPath = path.join(out,'public/app.js');
+let appText = fs.readFileSync(appPath,'utf8');
+appText = "import { renderDuelLeague } from './duel-league.js';\n" + appText;
+appText = appText.replace("${navButton('duel', 'Alliance Duel')}","${navButton('duel', 'Alliance Duel')}\n            ${navButton('duel-league', 'Duel League')}");
+appText = appText.replace("function navigate(route, push = true) {", "function navigate(route, push = true) {\n  if (['state-ruler','glory-war','guide'].includes(route)) { route='home'; history.replaceState(null,'','/'); }");
+appText = appText.replace("const allowed = ['home',", "const allowed = ['duel-league', 'home',");
+appText = appText.replace("if (route === 'duel') return renderDuelPage();", "if (route === 'duel-league') return renderDuelLeague(document.getElementById('main'));\n  if (route === 'duel') return renderDuelPage();");
+appText = appText.replace('Alliance Duel today, with State Ruler, Glory War and the combined seasonal participation leaderboard built into the same identity system.', 'Alliance Duel scores, the Duel League opponent path, and the Canyon Clash battle plan in one place.');
+appText = appText.replace("Track Alliance Duel performance now, add State Ruler and Glory War as their game responses are confirmed, and keep a stable player identity through every name change.", "Track Alliance Duel scores, explore the Duel League opponent path, and prepare for Canyon Clash.");
+appText = appText.replace("${featureCard('duel',", "${featureCard('duel-league', 'duel', 'Duel League', 'Road to the Final', 'Explore upcoming opponents and their migration power.', 'League', 'amber')}\n        ${featureCard('canyon', 'ruler', 'Canyon Clash', 'Battle plan', 'Team positions and rotations for every phase.', 'Plan', 'amber')}\n        ${featureCard('duel',");
+fs.writeFileSync(appPath,appText);
+const orderPath=path.join(out,'public/app-v080.js');
+fs.writeFileSync(orderPath,fs.readFileSync(orderPath,'utf8').replace("'Alliance Duel','State Ruler'","'Alliance Duel','Duel League','State Ruler'"));
+const guidePath=path.join(out,'public/app-v072.js');
+let guide=fs.readFileSync(guidePath,'utf8');
+// Prevent the retained guide extension from mounting navigation or a direct route.
+guide=guide.replace('function ensureGuideNav() {','function ensureGuideNav() { return;');
+guide=guide.replace("location.hash !== '#guide'", "true /* Guide paused on 36C */");
+fs.writeFileSync(guidePath,guide);
+
 // Keep the supplied alliance identity and theme isolated to the 36C artifact.
 fs.cpSync(path.join(root, 'deployments/36c/brand'), path.join(out, 'public/brand'), { recursive: true });
 const portalPath = path.join(out, 'public/app.js');

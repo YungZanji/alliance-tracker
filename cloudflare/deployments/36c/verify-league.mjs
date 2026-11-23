@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {opponentStages,powerComparison} from './duel-league.js';
+import {readLeague,handleLeague} from './catalog-power.js';
+const owner='0beb659cf5274a96952d91401ae41698';
+const teams=Array.from({length:16},(_,i)=>({alliance_id:i===4?owner:String(i),league_position:i+1}));
+assert.deepEqual(opponentStages(teams).map(s=>s.teams.map(t=>t.league_position)),[[6],[7,8],[1,2,3,4],[9,10,11,12,13,14,15,16]]);
+for(let i=0;i<16;i++){
+ const field=teams.map((t,j)=>({...t,alliance_id:j===i?owner:'other'+j}));
+ const opponents=opponentStages(field).flatMap(s=>s.teams);
+ assert.equal(new Set(opponents.map(t=>t.alliance_id)).size,15);
+ assert(!opponents.some(t=>t.alliance_id===owner));
+}
+const two=teams.slice(0,2),powers=two.map((t,i)=>({allianceId:t.alliance_id,status:'complete',totalMigratePower:100+i,scanId:'a'}));
+assert(powerComparison(two,powers).close);
+assert.equal(powerComparison(two,[{...powers[0],status:'partial'},powers[1]]),null);
+assert.equal(powerComparison(two,[powers[0],{...powers[1],scanId:'b'}]),null);
+assert.equal(powerComparison(two,[]),null);
+let field=teams;
+const env={DB:{prepare(sql){return {first:async()=>({cycle_id:'c',duel_group:'g',cycle_week:2}),bind(){assert(sql.includes('cycle_week=1'));return {all:async()=>({results:field})};}};}}};
+assert.equal((await readLeague(env)).openingAvailable,true);
+field=teams.slice(1);assert.equal((await readLeague(env)).openingAvailable,false);
+const denied=await handleLeague(new Request('https://example.test/api/duel/league'),env,{}, {fetch:async()=>Response.json({user:{isGuest:true}})});
+assert.equal(denied.status,403);
+const app=fs.readFileSync(new URL('../../.build-36c/public/app.js',import.meta.url),'utf8');
+assert(app.includes("navButton('duel-league', 'Duel League')"));
+assert(app.includes("if (['state-ruler','glory-war','guide'].includes(route))"));
+const guide=fs.readFileSync(new URL('../../.build-36c/public/app-v072.js',import.meta.url),'utf8');
+assert(guide.includes('function ensureGuideNav() { return;'));
+console.log('Verified bracket branches, incomplete/cross-scan power, opening seeds, guest denial and 36C feature routing.');

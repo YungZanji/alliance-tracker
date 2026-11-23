@@ -52,6 +52,8 @@ jobs:
           fi
           test -n "$DB_ID"
           node scripts/build-36c.mjs "$DB_ID"
+      - name: Verify Duel League and paused routes
+        run: node deployments/36c/verify-league.mjs
       - name: Apply only clean 36C migrations
         run: npx wrangler d1 migrations apply alliance-tracker-36c-db --remote --config .build-36c/wrangler.jsonc
       - name: Deploy 36C

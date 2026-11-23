@@ -51,3 +51,31 @@ html[data-theme="dark"] .btn-primary{color:#151710}
 .admin-unlock-card{background:var(--card);color:var(--ink);border-color:var(--line)}
 .admin-unlock-card p,.admin-unlock-card .field span{color:var(--muted)}
 .admin-unlock-icon,.admin-unlock-nav{background:var(--blue-soft);color:var(--blue-2);border-color:var(--line)}
+
+/* Paused 36C features retain their code and stored data. */
+.nav [data-route="state-ruler"], .nav [data-route="glory-war"], .nav .guide-nav,
+[data-card-route="state-ruler"], [data-card-route="glory-war"], [data-card-route="guide"] { display:none !important; }
+.league-page { min-width:0; }
+.league-heading h1 { margin:10px 0; }
+.league-path { max-width:1060px; margin:30px auto; }
+.league-stage { border:1px solid var(--line); border-radius:18px; padding:18px; background:var(--card-2); }
+.league-stage-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.league-stage-head h2 { margin:0; }
+.league-stage-head > span,.league-close { color:var(--muted); font-size:.9rem; }
+.league-candidates { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.league-team { min-width:0; border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--card); }
+.league-team summary { cursor:pointer; display:flex; align-items:center; gap:10px; list-style:none; min-height:48px; }
+.league-team summary::-webkit-details-marker { display:none; }
+.league-team summary:focus-visible { outline:2px solid var(--blue); outline-offset:4px; }
+.league-team summary strong { display:block; overflow-wrap:anywhere; }
+.league-team small { display:block; font-size:.75rem; color:var(--muted); font-weight:normal; }
+.league-seed { color:var(--muted); font-size:.8rem; }
+.league-power { margin-inline-start:auto; text-align:end; font-size:.92rem; font-weight:700; }
+.league-team p { font-size:.9rem; overflow-wrap:anywhere; }
+.league-team .badge { margin-top:12px; white-space:normal; }
+.league-strongest { border-color:var(--blue); }
+.league-connector { text-align:center; color:var(--blue); font-size:28px; padding:8px; }
+.league-foot { border-top:1px solid var(--line); padding-top:16px; }
+.league-foot p { overflow-wrap:anywhere; }
+@media(min-width:1000px) { .league-stage:last-child .league-candidates { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:600px) { .league-page { padding:16px; } .league-stage { padding:12px; } .league-candidates { gap:8px; } .league-team { padding:10px; } .league-team summary { flex-wrap:wrap; gap:6px; } .league-power { width:100%; text-align:start; margin:4px 0 0; } }
