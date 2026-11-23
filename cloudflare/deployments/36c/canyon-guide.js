@@ -48,7 +48,7 @@ const template = `<style>
 <symbol id="cc-signal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="m7 22 5-15 5 15m-8-5h6M7 10a7 7 0 0 1 0-8m10 0a7 7 0 0 1 0 8M4 13A10 10 0 0 1 4 0m16 0a10 10 0 0 1 0 13"/><circle fill="currentColor" cx="12" cy="6" r="2"/></symbol>
 </defs>
 </svg>
-<header class="page-head"><div><h1>36C Battle Plan</h1><p>Canyon Clash · State 261</p></div></header>
+<header class="page-head"><div><h1>Canyon Clash Battle Plan</h1><p>36C · State 261</p></div></header>
 <div class="phase-controls">
 <div role="group" aria-label="Match phase" class="phases">
 <button type="button" data-phase="pre" aria-pressed="true">Pre-Core</button>
