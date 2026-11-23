@@ -75,15 +75,15 @@ const template = `<style>
 <aside class="card flat cc-summary" aria-labelledby="phase-title"><p class="eyebrow">36C</p><h2 id="phase-title">Pre-Core</h2><p id="phase-note"></p><div id="orders"></div></aside>
 </section>
 <section class="cc-notes" aria-label="Captain and match reminders">
-<article class="card flat" id="captain-guide" tabindex="-1"><p class="eyebrow">Top right objective</p><h2>Canyon Captain</h2>
+<article class="card flat" id="captain-guide" tabindex="-1"><h2>Canyon Captain</h2>
 <p>Usually three players are appointed to handle Canyon Captain (Tyrant). Check if you’re on the list before the match.</p>
 <ol><li>Stay in the group call and listen for the Captain’s arrival time.</li><li>Teleport to the top right before the Captain arrives.</li><li>Send all your trucks out immediately and have them waiting outside. Hit the Captain together as soon as it appears.</li></ol>
 </article>
-<article class="card flat"><p class="eyebrow">All phases</p><h2>Important Reminders</h2><ul>
-<li>Watch alliance chat and coordinate with the main Canyon commander in the group call.</li>
-<li>Hold buildings as long as possible. Aim to be the last team in control before you teleport away.</li>
-<li>When the Core opens, A and B move immediately. C, D and available support cover the map and take uncontested buildings when they can do so without leaving their main assignments exposed.</li>
-<li>Stay alert for requests to reinforce the Core or another area.</li>
+<article class="card flat"><h2>Important Reminders</h2><ul>
+<li>Follow alliance chat and the Canyon group call.</li>
+<li>Hold buildings until you need to move.</li>
+<li>At Core opening, A and B move immediately. C and D hold bases and capture nearby uncontested buildings.</li>
+<li>Stay ready to reinforce wherever needed.</li>
 </ul></article>
 </section>
 `;
@@ -189,7 +189,7 @@ export function renderCanyonGuide(main) {
    });
    if(phase==='post'){
     const handover=document.createElement('section');handover.className='handover';
-    handover.innerHTML='<h3>Substitutions with a comfortable lead</h3><p>Once the lead is safe, we can bring in subs so more players earn points. If you want to sub out, call it out in the group call so a replacement can be assigned. Wait until your sub is confirmed and ready to take over before you leave your spot.</p>';
+    handover.innerHTML='<h3>Substitutions</h3><p>With a safe lead, subs can join to earn points. Request a replacement in the group call, and <strong>wait until your sub is confirmed and ready before leaving</strong>.</p>';
     list.append(handover);
    }
    function paint(item,owner){
