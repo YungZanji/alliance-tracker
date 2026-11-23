@@ -2,7 +2,7 @@ name: Deploy 36C tracker
 on:
   push:
     branches: [main]
-    paths: [cloudflare/deployments/36c/migrations/0003_reset_duel_history.sql]
+    paths: ['cloudflare/deployments/36c/**', 'cloudflare/scripts/build-36c.mjs']
   workflow_dispatch:
     inputs:
       create_database:

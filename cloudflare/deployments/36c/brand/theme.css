@@ -1,0 +1,33 @@
+/* 36C crest palette: antique gold #C3A264 and near-black #111310. */
+:root{
+ --ink:#25251f;--muted:#706c60;--page:#f3f0e8;--card:#fffdf8;--card-2:#eee9dc;--line:#d8cfba;
+ --navy:#111310;--navy-2:#24251e;--blue:#80622b;--blue-2:#71531f;--blue-soft:#f0e5cd;
+ --acid:#c3a264;--shadow:0 14px 38px rgba(32,30,21,.08)
+}
+html[data-theme="dark"]{
+ --ink:#f3efe5;--muted:#b8b2a4;--page:#0d0f0d;--card:#171a16;--card-2:#20231d;--line:#383b30;
+ --navy:#111310;--navy-2:#24251e;--blue:#c3a264;--blue-2:#e2c58e;--blue-soft:#30291b;
+ --acid:#c3a264;--green:#8fca9d;--green-soft:#1c3022;--red:#f29896;--red-soft:#3a2221;
+ --amber:#dfbe7e;--amber-soft:#342c1b;--purple:#cfb7de;--purple-soft:#302637;
+ --shadow:0 16px 44px rgba(0,0,0,.24)
+}
+body{background:linear-gradient(135deg,color-mix(in srgb,var(--page) 97%,#c3a264),var(--page))}
+.site-header{background:rgba(17,19,16,.97);border-bottom-color:rgba(195,162,100,.24)}
+.brand-copy small{color:#b8b2a4}
+.nav-link{color:#c9c5ba}.nav-link:hover,.nav-link.active{background:rgba(195,162,100,.15);color:#f1d6a1}
+.account-pill{background:rgba(195,162,100,.14);color:#e2c58e}
+.brand-mark{width:48px;height:52px;display:block;background:none;box-shadow:none;transform:none;border-radius:0;flex:none}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
+.login-crest{display:block;width:156px;height:156px;clip-path:none;background:none;margin-bottom:24px}
+.login-crest img{width:100%;height:100%;object-fit:contain}
+.hero,.login-visual{background:radial-gradient(ellipse at 82% 15%,rgba(195,162,100,.15),transparent 48%),linear-gradient(135deg,#111310,#24251e)}
+.hero p,.login-visual p{color:#cbc6b9}.eyebrow{color:var(--blue-2)}
+.login-visual .eyebrow,.hero .eyebrow{color:#e2c58e}
+.btn-primary{color:#fffdf8;box-shadow:0 7px 18px rgba(128,98,43,.18)}
+html[data-theme="dark"] .btn-primary{color:#151710}
+.btn-danger{color:#fff}
+@media(max-width:760px){
+ .nav-links{background:var(--navy)}
+ .brand-mark{width:42px;height:46px}
+ .login-crest{width:120px;height:120px}
+}

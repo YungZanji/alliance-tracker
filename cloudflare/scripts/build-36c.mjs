@@ -74,6 +74,22 @@ for (const dir of ['src', 'public']) {
   }
 }
 fs.copyFileSync(path.join(root, 'deployments/36c/canyon-guide.js'), path.join(out, 'public/canyon-guide.js'));
+// Keep the supplied alliance identity and theme isolated to the 36C artifact.
+fs.cpSync(path.join(root, 'deployments/36c/brand'), path.join(out, 'public/brand'), { recursive: true });
+const portalPath = path.join(out, 'public/app.js');
+let portal = fs.readFileSync(portalPath, 'utf8');
+const headerMark = '<span class="brand-mark">261</span>';
+const loginMark = '<div class="login-crest"><small>STATE</small><strong>261</strong></div>';
+if (!portal.includes(headerMark) || !portal.includes(loginMark)) throw new Error('36C logo mounts changed');
+portal = portal.replace(headerMark, '<span class="brand-mark"><img src="/brand/alliance-36c-icon.svg" alt="36C" width="48" height="52"></span>')
+  .replace(loginMark, '<div class="login-crest"><img src="/brand/alliance-36c-crest.svg" alt="36C Alliance" width="156" height="156"></div>');
+fs.writeFileSync(portalPath, portal);
+const htmlPath = path.join(out, 'public/index.html');
+let html = fs.readFileSync(htmlPath, 'utf8')
+  .replace('href="/favicon.svg"', 'href="/brand/alliance-36c-icon.svg"')
+  .replace('</head>', '<link rel="stylesheet" href="/brand/theme.css?v=1">\n</head>');
+fs.writeFileSync(htmlPath, html);
+
 fs.cpSync(path.join(root, 'deployments/36c/migrations'), path.join(out, 'migrations'), { recursive: true });
 fs.copyFileSync(path.join(root, 'deployments/36c/entry.js'), path.join(out, 'entry.js'));
 fs.writeFileSync(path.join(out, 'wrangler.jsonc'), JSON.stringify({
