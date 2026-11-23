@@ -48,7 +48,7 @@ const template = `<style>
 <symbol id="cc-signal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="m7 22 5-15 5 15m-8-5h6M7 10a7 7 0 0 1 0-8m10 0a7 7 0 0 1 0 8M4 13A10 10 0 0 1 4 0m16 0a10 10 0 0 1 0 13"/><circle fill="currentColor" cx="12" cy="6" r="2"/></symbol>
 </defs>
 </svg>
-<header class="page-head"><div><h1>Canyon Clash</h1><p>36C &amp; 36Z battle plan · State 261</p></div></header>
+<header class="page-head"><div><h1>36C Battle Plan</h1><p>Canyon Clash · State 261</p></div></header>
 <div class="phase-controls">
 <div role="group" aria-label="Match phase" class="phases">
 <button type="button" data-phase="pre" aria-pressed="true">Pre-Core</button>
@@ -72,7 +72,7 @@ const template = `<style>
 </div>
 <figcaption><div class="readout" role="status"><strong id="map-title">Energy Core</strong><span id="map-copy">The central objective. Team A takes the lead when it opens, with Team B reinforcing.</span><br id="captain-break" hidden><a id="captain-link" href="#captain-guide" hidden>View the Canyon Captain checklist ↓</a></div><ul id="legend" class="legend" aria-label="Map legend"></ul></figcaption>
 </figure>
-<aside class="card flat cc-summary" aria-labelledby="phase-title"><p class="eyebrow">36C &amp; 36Z</p><h2 id="phase-title">Pre-Core</h2><p id="phase-note"></p><div id="orders"></div></aside>
+<aside class="card flat cc-summary" aria-labelledby="phase-title"><p class="eyebrow">36C</p><h2 id="phase-title">Pre-Core</h2><p id="phase-note"></p><div id="orders"></div></aside>
 </section>
 <section class="cc-notes" aria-label="Captain and match reminders">
 <article class="card flat" id="captain-guide" tabindex="-1"><p class="eyebrow">Top right objective</p><h2>Canyon Captain</h2>
