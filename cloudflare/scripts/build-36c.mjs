@@ -92,6 +92,7 @@ fs.writeFileSync(htmlPath, html);
 
 fs.cpSync(path.join(root, 'deployments/36c/migrations'), path.join(out, 'migrations'), { recursive: true });
 fs.copyFileSync(path.join(root, 'deployments/36c/entry.js'), path.join(out, 'entry.js'));
+fs.copyFileSync(path.join(root, 'deployments/36c/catalog-power.js'), path.join(out, 'catalog-power.js'));
 fs.writeFileSync(path.join(out, 'wrangler.jsonc'), JSON.stringify({
   name: profile.workerName, main: './entry.js',
   compatibility_date: '2026-08-07', compatibility_flags: ['nodejs_compat'],
