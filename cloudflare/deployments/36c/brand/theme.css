@@ -31,3 +31,17 @@ html[data-theme="dark"] .btn-primary{color:#151710}
  .brand-mark{width:42px;height:46px}
  .login-crest{width:120px;height:120px}
 }
+
+/* Mobile dropdown: cancel the desktop row width so equal edge insets determine its size. */
+@media(max-width:760px){
+ .nav{flex-wrap:nowrap}
+ .nav .nav-links{
+  left:10px;right:10px;width:auto;max-width:none;margin:0;
+  box-sizing:border-box;padding:8px;gap:6px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  overflow-x:hidden;overflow-y:auto;
+ }
+ .nav .nav-link{min-width:0;display:flex;align-items:center;justify-content:center}
+ .mobile-nav-button{padding:0;place-items:center}
+ .mobile-nav-button svg{display:block}
+}
