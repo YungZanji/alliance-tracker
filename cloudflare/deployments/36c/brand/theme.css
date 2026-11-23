@@ -41,7 +41,13 @@ html[data-theme="dark"] .btn-primary{color:#151710}
   grid-template-columns:repeat(2,minmax(0,1fr));
   overflow-x:hidden;overflow-y:auto;
  }
- .nav .nav-link{min-width:0;display:flex;align-items:center;justify-content:center}
+ .nav .nav-links .nav-link{min-width:0;display:flex;align-items:center;justify-content:center}
+ .nav .brand{justify-content:flex-start;text-align:left;margin-inline:0;margin-inline-end:auto}
  .mobile-nav-button{padding:0;place-items:center}
  .mobile-nav-button svg{display:block}
 }
+
+/* Administrator dialogs share the active 36C theme. */
+.admin-unlock-card{background:var(--card);color:var(--ink);border-color:var(--line)}
+.admin-unlock-card p,.admin-unlock-card .field span{color:var(--muted)}
+.admin-unlock-icon,.admin-unlock-nav{background:var(--blue-soft);color:var(--blue-2);border-color:var(--line)}

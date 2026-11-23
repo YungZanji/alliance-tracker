@@ -105,8 +105,6 @@ async function unlockAdmin(event) {
   if (error) error.textContent = '';
   try {
     await api('/api/auth/admin-login', { method: 'POST', body: JSON.stringify({ password }) });
-    cachedUser = null;
-    cachedAt = 0;
     location.reload();
   } catch (err) {
     if (error) error.textContent = err.message;
@@ -268,8 +266,6 @@ async function lockAdminSession() {
   if (button) button.disabled = true;
   try {
     await api('/api/auth/admin-logout', { method: 'POST', body: '{}' });
-    cachedUser = null;
-    cachedAt = 0;
     sessionStorage.removeItem('admin-unlock-seen');
     location.reload();
   } catch (_) {
