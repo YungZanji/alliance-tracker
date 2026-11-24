@@ -86,7 +86,14 @@ appText = appText.replace("if (route === 'duel') return renderDuelPage();", "if 
 appText = appText.replace('Alliance Duel today, with State Ruler, Glory War and the combined seasonal participation leaderboard built into the same identity system.', 'Alliance Duel scores, the Duel League opponent path, and the Canyon Clash battle plan in one place.');
 appText = appText.replace("Track Alliance Duel performance now, add State Ruler and Glory War as their game responses are confirmed, and keep a stable player identity through every name change.", "Track Alliance Duel scores, explore the Duel League opponent path, and prepare for Canyon Clash.");
 appText = appText.replace("${featureCard('duel',", "${featureCard('duel-league', 'duel', 'Duel League', 'Road to the Final', 'See the alliances on our path to the final.', 'League', 'amber')}\n        ${featureCard('canyon', 'ruler', 'Canyon Clash', 'Battle plan', 'Team positions and rotations for every phase.', 'Plan', 'amber')}\n        ${featureCard('duel',");
+appText = "import { renderLifetimeLeaderboard } from './lifetime-leaderboard.js';\n" + appText;
+appText = appText.replace("if (route === 'leaderboards') return renderParticipation();", "if (route === 'leaderboards') return renderLifetimeLeaderboard(document.getElementById('main'));");
+appText = appText.replace("state.participation = await api('/api/participation')", "state.participation = await api('/api/duel/lifetime-contribution')");
+appText = appText.replace("'Combined participation'", "'Lifetime Duel points'");
 fs.writeFileSync(appPath,appText);
+fs.copyFileSync(path.join(root,'deployments/36c/lifetime-contribution.js'),path.join(out,'lifetime-contribution.js'));
+fs.copyFileSync(path.join(root,'deployments/36c/lifetime-leaderboard.js'),path.join(out,'public/lifetime-leaderboard.js'));
+
 const orderPath=path.join(out,'public/app-v080.js');
 fs.writeFileSync(orderPath,fs.readFileSync(orderPath,'utf8').replace("'Alliance Duel','State Ruler'","'Alliance Duel','Duel League','State Ruler'"));
 const guidePath=path.join(out,'public/app-v072.js');

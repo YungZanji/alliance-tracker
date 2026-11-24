@@ -1,3 +1,4 @@
+import { handleLifetimeContribution } from './lifetime-contribution.js';
 import { handleLeague } from './catalog-power.js';
 import { handleOwnerLogin } from './src/scoring-entry-v161.js';
 import portal from './src/scoring-entry-v164.js';
@@ -11,6 +12,7 @@ const ALLIANCE_ID = '0beb659cf5274a96952d91401ae41698';
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/duel/lifetime-contribution' && request.method === 'GET') return handleLifetimeContribution(request,env,ctx,portal);
     if (url.pathname === '/api/duel/league' && request.method === 'GET') return handleLeague(request,env,ctx,portal);
     if (url.pathname === '/api/duel/league-power') return Response.json({ok:false,error:'Migration power lookup is paused.'},{status:410});
     if (url.pathname === '/api/auth/owner-login' && request.method === 'POST') {

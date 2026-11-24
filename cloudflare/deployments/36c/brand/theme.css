@@ -73,3 +73,12 @@ html[data-theme="dark"] .btn-primary{color:#151710}
 .league-note { font-size:.8rem; margin-bottom:0; }
 @media(min-width:1000px) { .league-stage:last-child .league-candidates { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media(max-width:600px) { .league-page { padding:14px; } .league-stage { padding:10px; } .league-team { padding:9px; } }
+
+.lifetime-heading-note { display:block; font-size:.75rem; font-weight:normal; color:var(--muted); }
+.lifetime-note { margin:0; padding:0 20px 16px; color:var(--muted); font-size:.85rem; }
+.lifetime-contribution-table td.numeric { white-space:nowrap; font-variant-numeric:tabular-nums; }
+@media(max-width:760px) {
+ .lifetime-contribution-table td[data-label="Player"] { grid-column:1/-1; }
+ .lifetime-contribution-table td { min-width:0; overflow-wrap:anywhere; }
+ .lifetime-leaderboard .panel-head { align-items:stretch; }
+}
