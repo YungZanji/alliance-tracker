@@ -3,10 +3,11 @@ export function lifetimeStandings(rows) {
   const players=rows.map(row=>({publicId:String(row.public_id),name:String(row.current_name),allianceAbbr:'36C',serverId:261,totalDuelPoints:Number(row.total_points)}));
   if(players.some(p=>!Number.isSafeInteger(p.totalDuelPoints)||p.totalDuelPoints<0))throw new Error('Invalid Duel point total.');
   players.sort((a,b)=>b.totalDuelPoints-a.totalDuelPoints||a.name.localeCompare(b.name)||a.publicId.localeCompare(b.publicId));
-  const leader=players[0]?.totalDuelPoints||0;
+  const poolTotal=players.reduce((sum,p)=>sum+p.totalDuelPoints,0);
+  if(!Number.isSafeInteger(poolTotal))throw new Error('Alliance Duel total exceeds safe integer range.');
   let rank=0,previous=null;
-  players.forEach((p,i)=>{if(p.totalDuelPoints!==previous)rank=i+1;previous=p.totalDuelPoints;p.rank=rank;p.score=leader?Math.round(p.totalDuelPoints/leader*10000)/100:0;});
-  return {ok:true,players,leaderTotal:leader,scope:'all-recorded-duel-leagues',activeEvents:['alliance_duel'],plannedWeights:{alliance_duel:.45,state_ruler:.45,glory_war:.1}};
+  players.forEach((p,i)=>{if(p.totalDuelPoints!==previous)rank=i+1;previous=p.totalDuelPoints;p.rank=rank;p.score=poolTotal?Math.round(p.totalDuelPoints/poolTotal*10000)/100:0;});
+  return {ok:true,players,poolTotal,scoreModel:'share-of-alliance-total',scope:'all-recorded-duel-leagues',activeEvents:['alliance_duel'],plannedWeights:{alliance_duel:.45,state_ruler:.45,glory_war:.1}};
 }
 export async function handleLifetimeContribution(request,env,ctx,portal) {
   const auth=await portal.fetch(new Request(new URL('/api/auth/me',request.url),{headers:request.headers}),env,ctx);
