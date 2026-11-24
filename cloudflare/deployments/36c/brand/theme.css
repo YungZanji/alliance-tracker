@@ -82,3 +82,10 @@ html[data-theme="dark"] .btn-primary{color:#151710}
  .lifetime-contribution-table td { min-width:0; overflow-wrap:anywhere; }
  .lifetime-leaderboard .panel-head { align-items:stretch; }
 }
+
+.contribution-info{display:inline-block;vertical-align:middle;font-size:.85rem;font-weight:normal}
+.contribution-info summary{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:50%;cursor:pointer;color:var(--blue);list-style:none;font-weight:bold}
+.contribution-info summary::-webkit-details-marker{display:none}
+.contribution-info summary:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.contribution-info[open]{display:block;margin-top:8px;max-width:480px}
+.contribution-info>div{padding:10px 0;color:var(--muted);line-height:1.5}
