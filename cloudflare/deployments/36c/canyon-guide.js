@@ -5,8 +5,13 @@ const template = `<style>
 .canyon-guide .phase-controls {justify-content:space-between;margin-bottom:14px}
 .canyon-guide .phase-controls button {min-height:44px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-weight:750}
 .canyon-guide .phase-controls button[aria-pressed=true] {background:var(--blue-soft);color:var(--blue-2);border-color:var(--blue)}
-.canyon-guide .cc-layout,.canyon-guide .cc-notes {display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:start}
-.canyon-guide .cc-notes {margin-top:14px}
+.canyon-guide .cc-layout {display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:start}
+.canyon-guide .cc-side,.canyon-guide .cc-notes {display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+.canyon-guide .cc-side .card.flat {padding:18px}
+.canyon-guide .cc-side h2 {margin-top:0;margin-bottom:10px}
+.canyon-guide .cc-side p {margin-top:8px;margin-bottom:10px}
+.canyon-guide .cc-notes ol,.canyon-guide .cc-notes ul {padding-inline-start:22px;margin-bottom:0}
+.canyon-guide .cc-notes {margin-top:0}
 .canyon-guide .cc-board {margin:0;padding:clamp(8px,2vw,18px)}
 .canyon-guide .cc-board header {display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;margin-bottom:8px}
 .canyon-guide .orientation,.canyon-guide .cc-board small,.canyon-guide .cc-summary p,.canyon-guide #map-copy {color:var(--muted)}
@@ -72,8 +77,8 @@ const template = `<style>
 </div>
 <figcaption><div class="readout" role="status"><strong id="map-title">Energy Core</strong><span id="map-copy">The central objective. Team A takes the lead when it opens, with Team B reinforcing.</span><br id="captain-break" hidden><a id="captain-link" href="#captain-guide" hidden>View the Canyon Captain checklist ↓</a></div><ul id="legend" class="legend" aria-label="Map legend"></ul></figcaption>
 </figure>
+<div class="cc-side">
 <aside class="card flat cc-summary" aria-labelledby="phase-title"><p class="eyebrow">36C</p><h2 id="phase-title">Pre-Core</h2><p id="phase-note"></p><div id="orders"></div></aside>
-</section>
 <section class="cc-notes" aria-label="Captain and match reminders">
 <article class="card flat" id="captain-guide" tabindex="-1"><h2>Canyon Captain</h2>
 <p>Usually three players are appointed to handle Canyon Captain (Tyrant). Check if you’re on the list before the match.</p>
@@ -85,6 +90,8 @@ const template = `<style>
 <li>At Core opening, A and B move immediately. C and D hold bases and capture nearby uncontested buildings.</li>
 <li>Stay ready to reinforce wherever needed.</li>
 </ul></article>
+</section>
+</div>
 </section>
 `;
 
